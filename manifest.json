@@ -1,13 +1,13 @@
 {
   "name": "Fire Parts Lookup",
   "short_name": "Fire Parts",
-  "start_url": "/fire-parts-lookup/",
-  "scope": "/fire-parts-lookup/",
+  "start_url": "./",
+  "scope": "./",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#3b82f6",
   "icons": [
-    { "src": "/fire-parts-lookup/icon-192.png", "sizes": "192x192", "type": "image/png" },
-    { "src": "/fire-parts-lookup/icon-512.png", "sizes": "512x512", "type": "image/png" }
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" }
   ]
 }

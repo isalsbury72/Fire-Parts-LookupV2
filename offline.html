@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Offline — Fire Parts Lookup</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; display:flex; align-items:center; justify-content:center; min-height:100vh; margin:0; background:#fafafa; color:#111; }
+    .card { max-width:640px; padding:24px; border-radius:12px; background:#fff; box-shadow:0 6px 18px rgba(0,0,0,0.06); text-align:center; }
+    h1 { margin-top:0; }
+    .muted { color:#6b7280; }
+    .btn { margin-top:16px; padding:10px 14px; border-radius:8px; border:1px solid #d1d5db; background:#eff6ff; color:#1d4ed8; cursor:pointer; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>You're offline</h1>
+    <p class="muted">The app is currently offline. If you've previously loaded your parts CSV it should still be available. Otherwise, connect to the internet and reload to fetch the latest data.</p>
+    <button class="btn" onclick="location.reload()">Retry</button>
+  </div>
+</body>
+</html>
