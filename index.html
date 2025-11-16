@@ -1,0 +1,435 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Fire Parts Lookup v5.3.4</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+
+  <link rel="manifest" href="/fire-parts-lookup/manifest.json">
+  <link rel="icon" href="/fire-parts-lookup/icon-192.png">
+  <meta name="theme-color" content="#3b82f6">
+
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 0; background: #fafafa; color: #111; }
+    header { position: sticky; top: 0; background: #3b82f6; color: #fff; padding: 10px 16px; display: flex; align-items: center; gap: 12px; z-index: 10; }
+    header img { width: 28px; height: 28px; border-radius: 6px; }
+    h1 { font-size: 18px; margin: 0; }
+    .ver { margin-left: auto; background: #fff; color: #1d4ed8; font-weight: 600; padding: 2px 8px; border-radius: 999px; font-size: 12px; display: inline-flex; align-items: center; gap: 6px; }
+    .auth-pill { background: #dcfce7; color: #166534; border-radius: 999px; padding: 2px 8px; font-size: 11px; border: 1px solid #22c55e; display: inline-flex; align-items: center; gap: 4px; animation: authFadeIn 0.3s ease-out; }
+
+    main { padding: 12px 16px 80px; max-width: 960px; margin: 0 auto; }
+    .card { background:#fff; border:1px solid #eee; border-radius:12px; padding:12px; box-shadow: 0 1px 2px rgba(0,0,0,0.04); margin-bottom:12px; }
+    .row { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+
+    /* Prominent search box */
+    input[type="search"] { flex:1; padding:10px 14px; border-radius:999px; border:2px solid #3b82f6; background:#eff6ff; font-size:16px; outline:none; }
+    input[type="search"]:focus { box-shadow: 0 0 0 2px rgba(59,130,246,0.25); }
+
+    input[type="file"] { display:none; }
+    .btn { display:inline-flex; align-items:center; justify-content:center; gap:6px; padding:10px 12px; border-radius:10px; border:1px solid #d1d5db; background:#fff; cursor:pointer; font-size:13px; white-space:nowrap; }
+    .btn-secondary { background:#f9fafb; }
+    .btn-primary { border-color:#2563eb; background:#eff6ff; color:#1d4ed8; }
+    .btn-ghost { background:#ffffff; color:#374151; border-color:#9ca3af; }
+    .btn-dark { background:#f9fafb; color:#111827; border-color:#4b5563; }
+    .btn-danger { background:#fff1f2; color:#b91c1c; border-color:#fecdd3; }
+
+    .hint { font-size:12px; color:#555; margin-top:6px; }
+
+    /* Tabs */
+    .tabs { display:flex; gap:6px; margin-bottom:10px; }
+    .tab-btn { flex:1; padding:8px 10px; border-radius:999px; border:1px solid #d1d5db; background:#fff; cursor:pointer; font-size:13px; }
+
+    table { width:100%; border-collapse:collapse; margin-top:12px; }
+    th, td { text-align:left; padding:8px 6px; border-bottom:1px solid:#eee; font-size:13px; vertical-align:top; }
+    th { position: sticky; top: 64px; background:#fafafa; z-index:5; }
+    .badge { font-size:12px; background:#f3f4f6; padding:3px 7px; border-radius:999px; border:1px solid #e5e7eb; }
+    .copycell { user-select: all; background:#fffbe6; border:1px dashed #facc15; border-radius:8px; padding:8px; margin-top:8px; font-size:13px; min-height:18px; }
+    td.notes { color:#6b7280; font-size:12px; max-width:420px; white-space:normal; }
+    @media (max-width: 600px) { td.notes { max-width: 180px; } }
+
+    .small { font-size:12px; color:#6b7280; }
+
+    /* Build case + inputs */
+    .bc-textarea { width:100%; min-height:120px; padding:8px; border-radius:8px; border:1px solid #d1d5db; font-size:13px; resize:vertical; background:#fff; }
+    .bc-input { width:100%; padding:6px 8px; border-radius: 8px; border:1px solid #d1d5db; font-size:13px; }
+    .bc-input--tiny { width: 64px; min-width:64px; padding:6px 6px; text-align:center; }
+    .bc-input--tiny::placeholder { color: rgba(17,24,39,0.18); }
+
+    .step-title { font-weight:700; font-size:16px; margin:0; color:#111; }
+    .muted { color:#6b7280; font-size:12px; }
+    .pill { display:inline-flex; align-items:center; gap:6px; padding:4px 8px; border-radius:999px; border:1px solid #e5e7eb; background:#f9fafb; font-size:12px; }
+
+    /* Actions grid */
+    .action-grid {
+      display:grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap:8px;
+      max-width: 640px;
+    }
+    .action-btn {
+      height:64px; border-radius:12px;
+      display:flex; flex-direction:column; align-items:center; justify-content:center;
+      padding:6px 10px; text-align:center; border:1px solid #d1d5db;
+    }
+    .action-btn .ico { font-size:16px; line-height:1; }
+    .action-btn .lbl { font-size:13px; margin-top:4px; }
+    .action-btn .cap { font-size:11px; color:#6b7280; margin-top:2px; }
+
+    .action-btn.primary { border-color:#2563eb; background:#eff6ff; color:#1d4ed8; }
+    .action-btn.dark { border-color:#4b5563; background:#f9fafb; color:#111827; }
+    .action-btn.ghost { border-color:#9ca3af; background:#ffffff; color:#374151; }
+    .action-btn.danger { border-color:#fecdd3; background:#fff1f2; color:#b91c1c; }
+    .action-btn.disabled { opacity:.5; cursor:not-allowed; }
+
+    @media (max-width: 640px) {
+      .action-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+
+    @keyframes authFadeIn { from { opacity:0; transform:translateY(-2px); } to { opacity:1; transform:translateY(0); } }
+  </style>
+</head>
+<body>
+  <header>
+    <img src="icon-192.png" alt="Fire Parts">
+    <div>
+      <h1>Fire Parts Lookup</h1>
+      <div class="small">Offline-friendly parts and quote helper</div>
+    </div>
+    <div class="ver">
+      v5.3.4
+      <span id="authBanner" class="auth-pill" style="display:inline-block;">Authorised users only</span>
+    </div>
+  </header>
+
+  <main>
+    <!-- Tabs -->
+    <div class="tabs">
+      <button id="tabParts" class="tab-btn">Parts</button>
+      <button id="tabQuote" class="tab-btn">Quote</button>
+      <button id="tabSettings" class="tab-btn">Settings</button>
+    </div>
+
+    <!-- Parts page -->
+    <div id="partsPage">
+      <div class="card">
+        <h2 style="margin-top:0; font-size:16px;">Parts lookup</h2>
+
+        <div class="row" style="margin-bottom:8px;">
+          <input id="q" type="search" placeholder="Search supplier, type, description or part number…">
+        </div>
+
+        <div class="row" style="margin-bottom:4px;">
+          <label for="csv" class="btn">Load local CSV</label>
+          <input id="csv" type="file" accept=".csv">
+          <button id="loadShared" class="btn btn-secondary">Load shared file</button>
+          <button id="clearCache" class="btn btn-secondary">Clear data</button>
+        </div>
+
+        <div class="hint">
+          Showing <span id="count">0</span> items.<br>
+          <span id="partsCsvSummary">CSV: None loaded</span>
+        </div>
+
+        <div style="display:flex; align-items:center; gap:8px; margin-top:8px;">
+          <div class="copycell" id="copyArea" style="flex:1;"></div>
+          <button id="copyPartLine" class="btn btn-ghost">Copy line</button>
+          <button id="addToQuote"
+                  disabled
+                  class="btn"
+                  style="background:#f3f4f6; color:#9ca3af; border-color:#d1d5db; opacity:0.5; cursor:not-allowed;">
+            Add to quote
+          </button>
+        </div>
+
+        <table id="tbl">
+          <thead>
+            <tr>
+              <th>Supplier</th>
+              <th>Type</th>
+              <th>Description</th>
+              <th>Part #</th>
+              <th>Price</th>
+              <th>Notes</th>
+            </tr>
+          </thead>
+          <tbody><!-- filled by app.js --></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Quote page -->
+    <div id="quotePage" style="display:none;">
+      <div class="card">
+        <h2 style="margin-top:0; font-size:16px;">Quote items</h2>
+        <p class="small">Parts you add from the Parts tab will appear here. You can also add a manual line below.</p>
+
+        <table style="width:100%; border-collapse:collapse; margin-top:8px;" id="quoteTable">
+          <thead>
+            <tr>
+              <th>Qty</th>
+              <th>Supplier</th>
+              <th>Description</th>
+              <th>Part #</th>
+              <th>Line total</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody><!-- filled by app.js --></tbody>
+        </table>
+
+        <p class="small" id="quoteSummary" style="margin-top:8px;">Total: $0.00</p>
+
+        <!-- Manual item toggle -->
+        <div class="card" style="margin-top:10px;">
+          <div class="row" style="justify-content:space-between;">
+            <h3 style="margin:0; font-size:14px;">Manual item</h3>
+            <label class="small" style="display:flex; align-items:center; gap:6px; cursor:pointer;">
+              <input type="checkbox" id="manualToggle">
+              <span>Enable manual item entry</span>
+            </label>
+          </div>
+
+          <!-- Manual item section (hidden until toggled on) -->
+          <div id="manualSection" style="display:none; margin-top:10px;">
+            <div class="row" style="gap:8px; flex-wrap:wrap;">
+              <input id="manualSupplier" type="text" placeholder="Supplier *" class="bc-input" style="flex:1; min-width:160px;">
+              <input id="manualDescription" type="text" placeholder="Description *" class="bc-input" style="flex:2; min-width:220px;">
+              <input id="manualPart" type="text" placeholder="Part # *" class="bc-input" style="flex:1; min-width:120px;">
+              <input id="manualPrice" type="text" placeholder="Price each * e.g. 12.95" class="bc-input" style="flex:1; min-width:160px;">
+              <input id="manualQty" type="number" min="1" value="1" placeholder="Qty" class="bc-input" style="width:100px;">
+            </div>
+            <div style="margin-top:8px; display:flex; gap:8px; justify-content:flex-end;">
+              <button id="manualAddBtn" class="btn" style="border-color:#22c55e; background:#ecfdf5; color:#166534;">Add manual line to quote</button>
+            </div>
+            <div class="small" style="margin-top:6px; color:#6b7280;">Tip: Price can include a dollar sign, commas, or spaces. We will clean it automatically.</div>
+          </div>
+        </div>
+
+        <!-- Job + delivery -->
+        <div style="margin-top:8px; display:flex; flex-direction:column; gap:8px;">
+          <div style="display:flex; flex-wrap:wrap; gap:8px;">
+            <div style="flex:1; min-width:160px;">
+              <label class="small" for="jobNumber">Job number</label>
+              <input id="jobNumber" type="text" placeholder="Enter job number" class="bc-input">
+            </div>
+            <div style="flex:1; min-width:220px;">
+              <label class="small" for="deliveryAddress">Delivery address</label>
+              <select id="deliveryAddress" class="bc-input">
+                <option value="">Select delivery address</option>
+                <option>Delivery to Chubb 2 Lewis St Torrington QLD 4350</option>
+                <option>Delivery to Chubb C/O Ian Salsbury 103 Diamantina Circle Karalee QLD 4306</option>
+                <option>Delivery to Bryan Josai 43 Alexander St Wooroolin, Qld 4608</option>
+                <option>Delivery to Mark McCabe 8 Bushman St Plainland 4341</option>
+                <option>I will order and pickup</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Actions grid -->
+          <div class="action-grid" style="margin-top:6px;">
+            <button id="btnBuildCase" class="action-btn ghost">
+              <div class="ico">🧩</div><div class="lbl">Build case</div><div class="cap">Prep scope notes</div>
+            </button>
+            <button id="copyQuote" class="action-btn dark">
+              <div class="ico">🧾</div><div class="lbl">Copy quote</div><div class="cap">Includes total</div>
+            </button>
+            <button id="copyQuoteRaw" class="action-btn ghost">
+              <div class="ico">📋</div><div class="lbl">Copy items</div><div class="cap">No totals</div>
+            </button>
+
+            <button id="copyQuoteEmail" class="action-btn primary">
+              <div class="ico">✉️</div><div class="lbl">Copy for Email PO</div><div class="cap">Grouped by supplier</div>
+            </button>
+            <button id="btnClearQuote" class="action-btn danger">
+              <div class="ico">🗑️</div><div class="lbl">Clear quote</div><div class="cap">Removes all</div>
+            </button>
+            <button class="action-btn disabled" disabled>
+              <div class="ico">⏳</div><div class="lbl">Reserved</div><div class="cap">Coming soon</div>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Settings / Diagnostics page -->
+    <div id="settingsPage" style="display:none;">
+      <div class="card">
+        <h2 style="margin-top:0; font-size:16px;">Settings and diagnostics</h2>
+        <p class="small">Quick health check of your Fire Parts app and data.</p>
+
+        <!-- Software versions bubble -->
+        <div class="card" style="margin-top:8px;">
+          <h3 style="margin:0 0 6px 0; font-size:14px;">Software versions</h3>
+          <p class="small"><strong>App version:</strong> <span>v5.3.4</span></p>
+          <p class="small"><strong>Index.html version:</strong> <span id="diagIdxVersion">v5.3.4</span></p>
+          <p class="small"><strong>Service Worker version:</strong> <span id="diagSwVersion">fpl-v5-3-4</span></p>
+        </div>
+
+        <!-- Data & status bubble -->
+        <div class="card" style="margin-top:8px;">
+          <h3 style="margin:0 0 6px 0; font-size:14px;">Data and status</h3>
+          <p class="small"><strong>CSV source:</strong> <span id="diagCsvSource">None loaded</span></p>
+          <p class="small"><strong>Last CSV loaded:</strong> <span id="diagLastLoaded">—</span></p>
+          <p class="small"><strong>Parts rows loaded:</strong> <span id="diagPartsRows">0</span></p>
+          <p class="small"><strong>Quote items:</strong> <span id="diagQuoteItems">0</span></p>
+          <p class="small"><strong>Routine visit setting:</strong> <span id="diagRoutine">Not set</span></p>
+          <p class="small"><strong>Service worker:</strong> <span id="diagSwStatus">Checking…</span></p>
+        </div>
+
+        <!-- Maintenance -->
+        <div class="card" style="margin-top:8px;">
+          <h3 style="margin:0 0 6px 0; font-size:14px;">Maintenance</h3>
+          <p class="small">If things look odd, you can clear all local data and reload CSV.</p>
+          <button id="btnDiagClearAll" class="btn btn-danger" style="margin-top:6px;">Clear all app data</button>
+          <p class="small" style="margin-top:6px; color:#b91c1c;">This removes cached CSV, saved quotes, build case state, and access flag. It does not touch your CSV file on OneDrive or GitHub.</p>
+        </div>
+
+        <!-- Debug export -->
+        <div class="card" style="margin-top:8px;">
+          <h3 style="margin:0 0 6px 0; font-size:14px;">Export debug info</h3>
+          <p class="small">Copies a snapshot of app state (version, CSV metadata, quote counts etc.) so you can paste it into an email or chat.</p>
+          <button id="btnDiagCopy" class="btn btn-secondary" style="margin-top:6px;">Copy debug info</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Build Case: Step 1 -->
+    <div id="buildcase1Page" style="display:none;">
+      <div class="card">
+        <p class="step-title">Build case - Step 1</p>
+        <p class="muted">Notes collection. Notes to estimator is auto filled with current quote line items.</p>
+
+        <div class="card" style="margin-top:8px;">
+          <label class="small" for="notesCustomer">Notes to customer</label>
+          <textarea id="notesCustomer" class="bc-textarea" placeholder="Enter notes to customer..."></textarea>
+        </div>
+
+        <div class="card" style="margin-top:8px;">
+          <div style="display:flex; align-items:center; justify-content:space-between; gap:8px;">
+            <label class="small" for="notesEstimator">Notes to estimator</label>
+            <span id="bc1ItemsCount" class="pill">Items: 0</span>
+          </div>
+          <textarea id="notesEstimator" class="bc-textarea" placeholder="Auto filled with quote line items..."></textarea>
+        </div>
+
+        <div style="margin-top:10px; display:flex; gap:8px; justify-content:space-between; flex-wrap:wrap;">
+          <button id="btnBackToQuote" class="btn" style="border-color:#3b82f6; color:#1d4ed8;">Back to Quote</button>
+          <button id="btnToBuild2" class="btn" style="border-color:#16a34a; color:#166534; background:#ecfdf5;">Continue to Step 2</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Build Case: Step 2 -->
+    <div id="buildcase2Page" style="display:none;">
+      <div class="card">
+        <p class="step-title">Build case - Step 2</p>
+        <p class="muted">Scheduling and resource details.</p>
+
+        <div class="card" style="margin-top:8px;">
+          <div class="pill" style="margin-bottom:10px;">
+            <span>On next routine visit?</span>
+            <label style="display:inline-flex; align-items:center; gap:4px; margin-left:8px;">
+              <input type="radio" name="routineVisit" id="routineYes" value="yes"> Yes
+            </label>
+            <label style="display:inline-flex; align-items:center; gap:4px; margin-left:8px;">
+              <input type="radio" name="routineVisit" id="routineNo" value="no"> No
+            </label>
+          </div>
+
+          <!-- Overnight accommodation -->
+          <div class="row" style="margin-bottom:10px;">
+            <div>
+              <label class="small" for="accomNights">Overnight accommodation (nights)</label><br>
+              <input id="accomNights" class="bc-input bc-input--tiny" type="number" min="0" step="1" placeholder="0">
+            </div>
+          </div>
+
+          <!-- Normal Time -->
+          <div class="card" style="background:#f9fafb;">
+            <p class="small" style="margin:0 0 6px 0;"><strong>Normal Time</strong></p>
+            <div class="row">
+              <div>
+                <label class="small" for="labourHoursNormal">Labour hours</label><br>
+                <input id="labourHoursNormal" class="bc-input bc-input--tiny" type="number" min="0" step="0.5" placeholder="8">
+              </div>
+              <div>
+                <label class="small" for="numTechsNormal">Number of techs</label><br>
+                <input id="numTechsNormal" class="bc-input bc-input--tiny" type="number" min="0" step="1" placeholder="2">
+              </div>
+              <div>
+                <label class="small" for="travelHoursNormal">Travel hours</label><br>
+                <input id="travelHoursNormal" class="bc-input bc-input--tiny" type="number" min="0" step="0.5" placeholder="1">
+              </div>
+            </div>
+          </div>
+
+          <!-- After Hours -->
+          <div class="card" style="background:#f9fafb; margin-top:8px;">
+            <p class="small" style="margin:0 0 6px 0;"><strong>After Hours</strong></p>
+            <div class="row">
+              <div>
+                <label class="small" for="labourHoursAfter">Labour hours</label><br>
+                <input id="labourHoursAfter" class="bc-input bc-input--tiny" type="number" min="0" step="0.5" placeholder="4">
+              </div>
+              <div>
+                <label class="small" for="numTechsAfter">Number of techs</label><br>
+                <input id="numTechsAfter" class="bc-input bc-input--tiny" type="number" min="0" step="1" placeholder="1">
+              </div>
+              <div>
+                <label class="small" for="travelHoursAfter">Travel hours</label><br>
+                <input id="travelHoursAfter" class="bc-input bc-input--tiny" type="number" min="0" step="0.5" placeholder="1">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div style="margin-top:10px; display:flex; gap:8px; justify-content:space-between; flex-wrap:wrap;">
+          <button id="btnBackToBuild1" class="btn" style="border-color:#6b7280; color:#374151;">Back to Step 1</button>
+          <button id="btnToBuild3" class="btn" style="border-color:#16a34a; color:#166534; background:#ecfdf5;">Continue to Step 3</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Build Case: Step 3 -->
+    <div id="buildcase3Page" style="display:none;">
+      <div class="card">
+        <p class="step-title">Build case - Step 3</p>
+        <p class="muted">Final review. Notes to estimator carry over exactly from the current quote plus labour summary.</p>
+
+        <div class="card" style="margin-top:8px;">
+          <div style="display:flex; align-items:center; justify-content:space-between; gap:8px;">
+            <label class="small" for="notesCustomer3">Notes to customer</label>
+            <button id="btnCopyNC3" class="btn btn-primary">Copy</button>
+          </div>
+          <textarea id="notesCustomer3" class="bc-textarea" placeholder="Customer notes..."></textarea>
+        </div>
+
+        <div class="card" style="margin-top:8px;">
+          <div style="display:flex; align-items:center; justify-content:space-between; gap:8px;">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <label class="small" for="notesEstimator3">Notes to estimator</label>
+              <span id="bc3ItemsCount" class="pill">Items: 0</span>
+            </div>
+            <button id="btnCopyNE3" class="btn btn-primary">Copy</button>
+          </div>
+          <textarea id="notesEstimator3" class="bc-textarea" placeholder="Estimator notes..."></textarea>
+        </div>
+
+        <div style="margin-top:10px; display:flex; gap:8px; justify-content:space-between; flex-wrap:wrap;">
+          <button id="btnBackToBuild2" class="btn" style="border-color:#6b7280; color:#374151;">Back to Step 2</button>
+          <button id="btnBackToQuoteFrom3" class="btn" style="border-color:#3b82f6; color:#1d4ed8;">Back to Quote</button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+  <script src="app.js"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/fire-parts-lookup/sw.js', { scope: '/fire-parts-lookup/' })
+        .catch(() => {});
+    }
+  </script>
+</body>
+</html>
