@@ -100,6 +100,27 @@ function formatLastLoaded(iso) {
   });
 }
 
+function formatLastLoaded(iso) {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return 'Unknown';
+  return d.toLocaleString('en-AU', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+}
+
+function debounce(fn, delay) {
+  let timeout;
+  return function(...args) {
+    clearTimeout(timeout);
+    timeout = setTimeout(() => fn.apply(this, args), delay);
+  };
+}
+
 function getHaymansStores() {
   try {
     const raw = localStorage.getItem(LS_KEYS.HAYMANS_STORES);
@@ -159,13 +180,19 @@ function parseCSV(txt, sourceLabel) {
 function saveQuote() {
   try {
     localStorage.setItem(LS_KEYS.QUOTE, JSON.stringify(state.quote));
-  } catch {}
+  } catch (err) {
+    console.error('Failed to save quote:', err);
+    toast('Warning: Quote not saved (storage full?)', false);
+  }
 }
 
 function saveBuildcase() {
   try {
     localStorage.setItem(LS_KEYS.BUILDCASE, JSON.stringify(state.buildcase));
-  } catch {}
+  } catch (err) {
+    console.error('Failed to save buildcase:', err);
+    toast('Warning: Build case not saved (storage full?)', false);
+  }
 }
 
 function loadSavedState() {
@@ -353,7 +380,7 @@ function renderParts() {
   renderDiagnostics();
 }
 
-if (els.q) els.q.addEventListener('input', renderParts);
+if (els.q) els.q.addEventListener('input', debounce(renderParts, 300));
 
 function updateAddToQuoteState() {
   const b = els.addToQuote;
@@ -439,8 +466,17 @@ if (cachedCsv) {
   } catch {}
 }
 
+let isLoadingCsv = false; // 👈 Add this flag
+
 async function loadSharedFromRepo() {
-  if (!ensureAccess()) return;
+  if (isLoadingCsv) return; // 👈 Prevent double-click
+  isLoadingCsv = true;
+  
+  if (!ensureAccess()) {
+    isLoadingCsv = false; // 👈 Reset flag
+    return;
+  }
+  
   try {
     const res = await fetch(`Parts.csv?v=${CSV_VERSION}`, { cache: 'no-cache' });
     if (!res.ok) throw new Error('HTTP ' + res.status);
@@ -451,21 +487,9 @@ async function loadSharedFromRepo() {
   } catch (err) {
     console.error(err);
     toast('Error loading shared CSV from repo', false);
+  } finally {
+    isLoadingCsv = false; // 👈 Reset flag when done
   }
-}
-
-if (els.csv) {
-  els.csv.addEventListener('change', e => {
-    const f = e.target.files[0];
-    if (!f) return;
-    const r = new FileReader();
-    r.onload = () => {
-      localStorage.setItem(LS_KEYS.CSV, r.result);
-      parseCSV(r.result, 'Local CSV file');
-      toast('Loaded local CSV', true);
-    };
-    r.readAsText(f);
-  });
 }
 
 function ensureAccess() {
@@ -1177,12 +1201,13 @@ if (els.btnClearQuote) els.btnClearQuote.addEventListener('click', () => {
 if (els.manualAddBtn) els.manualAddBtn.addEventListener('click', () => {
   const desc = (els.manualDescription?.value || '').trim();
   if (!desc) {
-    toast('Enter a description for the manual item.', false);
+    toast('Description is required for manual items', false);
+    if (els.manualDescription) els.manualDescription.focus();
     return;
   }
 
-  const sup = (els.manualSupplier?.value || '').trim();
-  const pn = (els.manualPart?.value || '').trim();
+  const sup = (els.manualSupplier?.value || '').trim() || 'Manual Entry';
+  const pn = (els.manualPart?.value || '').trim() || 'N/A';
   const priceEach = parseFloat((els.manualPrice?.value || '').toString().replace(/[^0-9.]/g, '')) || 0;
   const qty = Math.max(1, parseInt(els.manualQty?.value, 10) || 1);
 
@@ -1202,7 +1227,7 @@ if (els.manualAddBtn) els.manualAddBtn.addEventListener('click', () => {
   if (els.manualPrice) els.manualPrice.value = '';
   if (els.manualQty) els.manualQty.value = '1';
   setManualBtnEnabled(false);
-  toast('Manual item added.', true);
+  toast('Manual item added to quote', true);
 });
 
 function recalcBattery() {
@@ -1361,6 +1386,18 @@ function start() {
     showPartsPage();
   }
 }
+
+// Keyboard shortcuts
+document.addEventListener('keydown', (e) => {
+  // Ctrl/Cmd + K to focus search (unless in input/textarea)
+  if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+    if (els.q && document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA') {
+      e.preventDefault();
+      showPartsPage();
+      els.q.focus();
+    }
+  }
+});
 
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', start);
