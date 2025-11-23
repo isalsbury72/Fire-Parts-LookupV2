@@ -1,14 +1,13 @@
 // sw.js
-const CACHE = 'fpl-v5-3-6';
+const CACHE = 'fpl-v5-3-10';
 
 const ASSETS = [
   './',
-  './index.html',
-  './app.js?v=5.3.6',
-  './manifest.json',
-  './icon-192.png',
-  './icon-512.png',
-  './Parts.csv'
+  'index.html',
+  'app.js?v=5.3.10',
+  'manifest.json',
+  'icon-192.png',
+  'icon-512.png',
 ];
 
 self.addEventListener('install', e => {
@@ -29,48 +28,32 @@ self.addEventListener('activate', e => {
   );
 });
 
-self.addEventListener('fetch', e => {
-  const req = e.request;
-  const url = new URL(req.url);
+self.addEventListener('fetch', event => {
+  const url = new URL(event.request.url);
 
-  const isNavigate =
-    req.mode === 'navigate' ||
-    (req.headers.get('accept') || '').includes('text/html');
-
-  const isApp =
-    url.pathname.endsWith('app.js') ||
-    url.searchParams.has('v');
-
-  // Navigation: network first, fall back to cached index.html
-  if (isNavigate) {
-    e.respondWith(
-      fetch(req)
-        .then(resp => {
-          const copy = resp.clone();
-          caches.open(CACHE).then(c => c.put('./index.html', copy));
-          return resp;
+  // 🔹 Special case: always try network first for Parts.csv so new rows show up
+  if (url.pathname.endsWith('/Parts.csv')) {
+    event.respondWith(
+      fetch(event.request.clone())
+        .then(response => {
+          // Cache the fresh CSV for offline use as well
+          const copy = response.clone();
+          caches.open(CACHE_NAME).then(cache => cache.put(event.request, copy));
+          return response;
         })
-        .catch(() => caches.match('./index.html'))
+        .catch(() => {
+          // If offline, fall back to cached CSV if we have it
+          return caches.match(event.request);
+        })
     );
-    return;
+    return; // Important: don't fall through to the generic handler
   }
 
-  // app.js: network first
-  if (isApp) {
-    e.respondWith(
-      fetch(req)
-        .then(resp => {
-          const copy = resp.clone();
-          caches.open(CACHE).then(c => c.put(req, copy));
-          return resp;
-        })
-        .catch(() => caches.match(req))
-    );
-    return;
-  }
+  // ... your existing fetch logic for navigations, app.js, other assets ...
+});
 
-  // Everything else: cache first
+  // Cache first for everything else
   e.respondWith(
-    caches.match(req).then(r => r || fetch(req))
+    caches.match(e.request).then(r => r || fetch(e.request))
   );
 });

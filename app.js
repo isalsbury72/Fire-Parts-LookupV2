@@ -1,12 +1,14 @@
-/* Fire Parts Lookup v5.3.6
-   - Home dashboard with tools
-   - Battery calculation page
+/* Fire Parts Lookup v5.3.10
    - Quote and build case saved/restored from localStorage
    - CSV metadata (source, last loaded) tracked for diagnostics
    - Settings/Diagnostics tab + Copy debug info
+   - Optional home + battery calculator page support
 */
 
-const APP_VERSION = '5.3.6';
+const APP_VERSION = '5.3.10';
+const FEEDBACK_EMAIL = 'FPLFeedback@salsbury.com.au'; // TODO: set to your real feedback address
+// Bump this whenever you upload a new Parts.csv to GitHub
+const CSV_VERSION = '20251122';
 
 const state = {
   rows: [],
@@ -27,6 +29,9 @@ const state = {
   csvMeta: {
     source: 'None loaded',
     loadedAt: null
+  },
+  battery: {
+    Tq: 24 // quiescent standby time in hours (24 or 72 via buttons)
   }
 };
 
@@ -37,7 +42,8 @@ const LS_KEYS = {
   CSV_META: 'csv_meta_v1',
   QUOTE: 'quote_data_v1',
   BUILDCASE: 'buildcase_state_v1',
-  ACCESS: 'hasAccess'
+  ACCESS: 'hasAccess',
+  HAYMANS_STORES: 'haymans_stores_v1'
 };
 
 function toast(msg, ok = false) {
@@ -93,6 +99,35 @@ function formatLastLoaded(iso) {
     hour: '2-digit',
     minute: '2-digit'
   });
+}
+
+function getHaymansStores() {
+  try {
+    const raw = localStorage.getItem(LS_KEYS.HAYMANS_STORES);
+    if (!raw) return [];
+    const arr = JSON.parse(raw);
+    if (!Array.isArray(arr)) return [];
+    return arr
+      .map(s => (s || '').toString().trim())
+      .filter(s => s.length > 0);
+  } catch {
+    return [];
+  }
+}
+
+function saveHaymansStores(stores) {
+  try {
+    const unique = [];
+    const seen = new Set();
+    stores.forEach(s => {
+      const key = s.toLowerCase();
+      if (!seen.has(key)) {
+        seen.add(key);
+        unique.push(s);
+      }
+    });
+    localStorage.setItem(LS_KEYS.HAYMANS_STORES, JSON.stringify(unique));
+  } catch {}
 }
 
 /* CSV parsing and metadata */
@@ -184,48 +219,64 @@ function loadSavedState() {
 /* DOM refs */
 
 const els = {
-  // Home + navigation
+  // Home
   homePage: document.getElementById('homePage'),
+  btnHomeParts: document.getElementById('btnHomeParts'),
+  btnHomeBattery: document.getElementById('btnHomeBattery'),
+
+  // Feedback page
+  feedbackPage: document.getElementById('feedbackPage'),
+  feedbackSubject: document.getElementById('feedbackSubject'),
+  feedbackText: document.getElementById('feedbackText'),
+  feedbackCancel: document.getElementById('feedbackCancel'),
+  feedbackClear: document.getElementById('feedbackClear'),
+  feedbackSend: document.getElementById('feedbackSend'),
+  goHomeFromFeedback: document.getElementById('goHomeFromFeedback'),
+
+  // Battery
   batteryPage: document.getElementById('batteryPage'),
-  partsPage: document.getElementById('partsPage'),
-  quotePage: document.getElementById('quotePage'),
-  settingsPage: document.getElementById('settingsPage'),
-  buildcase1Page: document.getElementById('buildcase1Page'),
-  buildcase2Page: document.getElementById('buildcase2Page'),
-  buildcase3Page: document.getElementById('buildcase3Page'),
-
-  tabHome: document.getElementById('tabHome'),
-  tabParts: document.getElementById('tabParts'),
-  tabQuote: document.getElementById('tabQuote'),
-  tabSettings: document.getElementById('tabSettings'),
-
-  btnGoParts: document.getElementById('btnGoParts'),
-  btnGoBattery: document.getElementById('btnGoBattery'),
+  battIq: document.getElementById('battIq'),
+  battIa: document.getElementById('battIa'),
+  battTqDisplay: document.getElementById('battTqDisplay'),
+  battTaDisplay: document.getElementById('battTaDisplay'),
+  battBtnTq24: document.getElementById('battBtnTq24'),
+  battBtnTq72: document.getElementById('battBtnTq72'),
+  battCap20: document.getElementById('battCap20'),
+  battAgeCap: document.getElementById('battAgeCap'),
+  battRequired: document.getElementById('battRequired'),
 
   // Parts
   q: document.getElementById('q'),
   csv: document.getElementById('csv'),
   tbl: document.getElementById('tbl')?.querySelector('tbody'),
   count: document.getElementById('count'),
-  partsCsvSummary: document.getElementById('partsCsvSummary'),
   copyArea: document.getElementById('copyArea'),
   copyPartLine: document.getElementById('copyPartLine'),
-  clearCache: document.getElementById('clearCache'),
-  loadShared: document.getElementById('loadShared'),
+  partsPage: document.getElementById('partsPage'),
 
-  // Quote
+  // Quote + build case pages
+  quotePage: document.getElementById('quotePage'),
+  settingsPage: document.getElementById('settingsPage'),
+  buildcase1Page: document.getElementById('buildcase1Page'),
+  buildcase2Page: document.getElementById('buildcase2Page'),
+  buildcase3Page: document.getElementById('buildcase3Page'),
+
+  tabParts: document.getElementById('tabParts'),
+  tabQuote: document.getElementById('tabQuote'),
+  tabSettings: document.getElementById('tabSettings'),
+
   addToQuote: document.getElementById('addToQuote'),
   copyQuote: document.getElementById('copyQuote'),
   copyQuoteRaw: document.getElementById('copyQuoteRaw'),
   copyQuoteEmail: document.getElementById('copyQuoteEmail'),
+   emailPoRequest: document.getElementById('emailPoRequest'),
   btnClearQuote: document.getElementById('btnClearQuote'),
   btnBuildCase: document.getElementById('btnBuildCase'),
   jobNumber: document.getElementById('jobNumber'),
   deliveryAddress: document.getElementById('deliveryAddress'),
   quoteTableBody: document.querySelector('#quoteTable tbody'),
   quoteSummary: document.getElementById('quoteSummary'),
-
-  // Manual quote item
+  
   manualToggle: document.getElementById('manualToggle'),
   manualSection: document.getElementById('manualSection'),
   manualSupplier: document.getElementById('manualSupplier'),
@@ -235,15 +286,14 @@ const els = {
   manualQty: document.getElementById('manualQty'),
   manualAddBtn: document.getElementById('manualAddBtn'),
 
-  // Build case nav
   btnBackToQuote: document.getElementById('btnBackToQuote'),
   btnToBuild2: document.getElementById('btnToBuild2'),
   btnBackToBuild1: document.getElementById('btnBackToBuild1'),
   btnToBuild3: document.getElementById('btnToBuild3'),
   btnBackToBuild2: document.getElementById('btnBackToBuild2'),
   btnBackToQuoteFrom3: document.getElementById('btnBackToQuoteFrom3'),
+  btnBackToQuoteFrom2: document.getElementById('btnBackToQuoteFrom2'),
 
-  // Build case fields
   notesCustomer: document.getElementById('notesCustomer'),
   notesEstimator: document.getElementById('notesEstimator'),
   bc1ItemsCount: document.getElementById('bc1ItemsCount'),
@@ -264,16 +314,23 @@ const els = {
   btnCopyNC3: document.getElementById('btnCopyNC3'),
   btnCopyNE3: document.getElementById('btnCopyNE3'),
 
-  // Battery calc
-  battIq: document.getElementById('battIq'),
-  battIa: document.getElementById('battIa'),
-  battTq: document.getElementById('battTq'),
-  battTa: document.getElementById('battTa'),
-  battL: document.getElementById('battL'),
-  battFc: document.getElementById('battFc'),
-  btnBattCalc: document.getElementById('btnBattCalc'),
-  btnBattReset: document.getElementById('btnBattReset'),
-  battResult: document.getElementById('battResult'),
+  // Home navigation buttons
+  goHomeFromParts:    document.getElementById('goHomeFromParts'),
+  goHomeFromQuote:    document.getElementById('goHomeFromQuote'),
+  goHomeFromBattery:  document.getElementById('goHomeFromBattery'),
+  goHomeFromSettings: document.getElementById('goHomeFromSettings'),
+
+  // Settings CSV buttons
+  loadLocalCsvSettings: document.getElementById('loadLocalCsvSettings'),
+  loadSharedSettings:   document.getElementById('loadSharedSettings'),
+  clearDataSettings:    document.getElementById('clearDataSettings'),
+
+     // Haymans store dialog
+  haymansDialog: document.getElementById('haymansDialog'),
+  haymansStoreInput: document.getElementById('haymansStoreInput'),
+  haymansStoreList: document.getElementById('haymansStoreList'),
+  haymansStoreOk: document.getElementById('haymansStoreOk'),
+  haymansStoreCancel: document.getElementById('haymansStoreCancel'),
 
   // Diagnostics
   diagCsvSource: document.getElementById('diagCsvSource'),
@@ -292,10 +349,21 @@ function renderParts() {
   const q = els.q ? els.q.value.trim().toLowerCase() : '';
   const body = els.tbl;
   if (!body) return;
+
   body.innerHTML = '';
-  const rows = state.rows.filter(r =>
-    !q || Object.values(r).join(' ').toLowerCase().includes(q)
-  );
+
+  let rows = [];
+  if (q) {
+    rows = state.rows.filter(r =>
+      Object.values(r).join(' ').toLowerCase().includes(q)
+    );
+  } else {
+    // No query: show nothing, clear selection & yellow pill
+    state.selected = null;
+    updateAddToQuoteState();
+    if (els.copyArea) els.copyArea.textContent = '';
+  }
+
   rows.forEach(r => {
     const tr = document.createElement('tr');
     tr.innerHTML = `
@@ -308,8 +376,9 @@ function renderParts() {
     tr.addEventListener('click', () => {
       state.selected = r;
       if (els.copyArea) {
+        // Same format style as Notes to estimator, but no qty
         els.copyArea.textContent =
-          `${r.SUPPLIER} — ${r.DESCRIPTION} — ${r.PARTNUMBER} — ${fmtPrice(r.PRICE)} each`;
+          `${r.DESCRIPTION} — ${r.PARTNUMBER} — ${fmtPrice(r.PRICE)} each (${r.SUPPLIER} price)`;
       }
       updateAddToQuoteState();
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -317,15 +386,7 @@ function renderParts() {
     body.appendChild(tr);
   });
 
-  if (els.count) els.count.textContent = rows.length;
-
-  if (els.partsCsvSummary) {
-    const src = state.csvMeta.source || 'None loaded';
-    const when = state.csvMeta.loadedAt ? formatLastLoaded(state.csvMeta.loadedAt) : null;
-    els.partsCsvSummary.textContent = when
-      ? `CSV: ${src} • Last loaded: ${when}`
-      : `CSV: ${src}`;
-  }
+  if (els.count) els.count.textContent = rows.length.toString();
 
   renderDiagnostics();
 }
@@ -420,12 +481,12 @@ if (cachedCsv) {
   } catch {}
 }
 
-/* ---------- Loaders ---------- */
+/* ---------- Loaders (CSV & shared file) ---------- */
 
 async function loadSharedFromRepo() {
   if (!ensureAccess()) return;
   try {
-    const res = await fetch('Parts.csv', { cache: 'no-cache' });
+    const res = await fetch(`Parts.csv?v=${CSV_VERSION}`, { cache: 'no-cache' });
     if (!res.ok) throw new Error('HTTP ' + res.status);
     const text = await res.text();
     localStorage.setItem(LS_KEYS.CSV, text);
@@ -437,17 +498,19 @@ async function loadSharedFromRepo() {
   }
 }
 
-if (els.csv) els.csv.addEventListener('change', e => {
-  const f = e.target.files[0];
-  if (!f) return;
-  const r = new FileReader();
-  r.onload = () => {
-    localStorage.setItem(LS_KEYS.CSV, r.result);
-    parseCSV(r.result, 'Local CSV file');
-    toast('Loaded local CSV', true);
-  };
-  r.readAsText(f);
-});
+if (els.csv) {
+  els.csv.addEventListener('change', e => {
+    const f = e.target.files[0];
+    if (!f) return;
+    const r = new FileReader();
+    r.onload = () => {
+      localStorage.setItem(LS_KEYS.CSV, r.result);
+      parseCSV(r.result, 'Local CSV file');
+      toast('Loaded local CSV', true);
+    };
+    r.readAsText(f);
+  });
+}
 
 function ensureAccess() {
   const ok = localStorage.getItem(LS_KEYS.ACCESS);
@@ -461,8 +524,6 @@ function ensureAccess() {
   toast('Access denied.', false);
   return false;
 }
-
-if (els.loadShared) els.loadShared.addEventListener('click', loadSharedFromRepo);
 
 function clearAllData() {
   localStorage.removeItem(LS_KEYS.CSV);
@@ -491,6 +552,17 @@ function clearAllData() {
     loadedAt: null
   };
 
+  // 🔹 Also clear any SW caches starting with "fpl-"
+  if ('caches' in window) {
+    caches.keys().then(keys => {
+      keys.forEach(k => {
+        if (k.startsWith('fpl-')) {
+          caches.delete(k);
+        }
+      });
+    });
+  }
+
   renderParts();
   renderQuote();
   updateAddToQuoteState();
@@ -498,8 +570,26 @@ function clearAllData() {
   toast('All app data cleared.', true);
 }
 
-if (els.clearCache) els.clearCache.addEventListener('click', clearAllData);
-if (els.btnDiagClearAll) els.btnDiagClearAll.addEventListener('click', clearAllData);
+/* Settings: CSV buttons */
+
+if (els.loadSharedSettings) {
+  els.loadSharedSettings.addEventListener('click', loadSharedFromRepo);
+}
+
+if (els.loadLocalCsvSettings) {
+  els.loadLocalCsvSettings.addEventListener('click', () => {
+    if (els.csv) els.csv.click();
+  });
+}
+
+if (els.clearDataSettings) {
+  els.clearDataSettings.addEventListener('click', clearAllData);
+}
+
+// Keep original diag clear button wired too (if present)
+if (els.btnDiagClearAll) {
+  els.btnDiagClearAll.addEventListener('click', clearAllData);
+}
 
 /* ---------- Manual item ---------- */
 
@@ -521,23 +611,23 @@ function setManualBtnEnabled(enabled) {
     b.style.cursor = 'not-allowed';
   }
 }
+
 function manualInputsValid() {
-  if (!els.manualSection || els.manualSection.style.display === 'none') return false;
-  const sup = (els.manualSupplier.value || '').trim();
-  const desc = (els.manualDescription.value || '').trim();
-  const pn = (els.manualPart.value || '').trim();
-  const priceEach = parseFloat((els.manualPrice.value || '').toString().replace(/[^0-9.]/g, ''));
-  return !!(sup && desc && pn && !isNaN(priceEach));
+  // Only require a non-empty description
+  const desc = (els.manualDescription?.value || '').trim();
+  return !!desc;
 }
+
 ['manualSupplier','manualDescription','manualPart','manualPrice','manualQty'].forEach(id => {
   const input = els[id];
   if (input) input.addEventListener('input', () => setManualBtnEnabled(manualInputsValid()));
 });
+
 if (els.manualToggle) {
   els.manualToggle.addEventListener('change', e => {
     const on = e.target.checked;
     if (on) {
-      els.manualSection.style.display = 'block';
+      if (els.manualSection) els.manualSection.style.display = 'block';
       setManualBtnEnabled(manualInputsValid());
     } else {
       if (els.manualSupplier) els.manualSupplier.value = '';
@@ -546,14 +636,14 @@ if (els.manualToggle) {
       if (els.manualPrice) els.manualPrice.value = '';
       if (els.manualQty) els.manualQty.value = '1';
       setManualBtnEnabled(false);
-      els.manualSection.style.display = 'none';
+      if (els.manualSection) els.manualSection.style.display = 'none';
     }
   });
   if (els.manualToggle.checked) {
-    els.manualSection.style.display = 'block';
+    if (els.manualSection) els.manualSection.style.display = 'block';
     setManualBtnEnabled(manualInputsValid());
   } else {
-    els.manualSection.style.display = 'none';
+    if (els.manualSection) els.manualSection.style.display = 'none';
     setManualBtnEnabled(false);
   }
 }
@@ -614,7 +704,7 @@ if (els.copyQuote) els.copyQuote.addEventListener('click', () => {
   const lines = state.quote.map(i => {
     const qty = i.qty || 1;
     total += i.PRICE * qty;
-    return `${qty} x ${i.DESCRIPTION} — ${i.PARTNUMBER} — ${fmtPrice(i.PRICE)} each (${i.SUPPLIER} price list)`;
+    return `${qty} x ${i.DESCRIPTION} — ${i.PARTNUMBER} — ${fmtPrice(i.PRICE)} each (${i.SUPPLIER} price)`;
   });
   lines.push('', 'Total: ' + fmtPrice(total));
   copyText(lines.join('\n'), 'Quote copied.');
@@ -625,10 +715,11 @@ if (els.copyQuoteRaw) els.copyQuoteRaw.addEventListener('click', () => {
   if (!state.quote.length) return toast('No items to copy.', false);
   const lines = state.quote.map(i => {
     const qty = i.qty || 1;
-    return `${qty} x ${i.DESCRIPTION} — ${i.PARTNUMBER} — ${fmtPrice(i.PRICE)} each (${i.SUPPLIER} price list)`;
+    return `${qty} x ${i.DESCRIPTION} — ${i.PARTNUMBER} — ${fmtPrice(i.PRICE)} each (${i.SUPPLIER} price)`;
   });
   copyText(lines.join('\n'), 'Items copied.');
 });
+
 
 /* Copy for Email PO - grouped by supplier */
 if (els.copyQuoteEmail) els.copyQuoteEmail.addEventListener('click', () => {
@@ -668,18 +759,182 @@ if (els.copyQuoteEmail) els.copyQuoteEmail.addEventListener('click', () => {
   copyText(lines.join('\n').trimEnd(), 'Email PO copied.');
 });
 
+async function chooseHaymansStore() { 
+  return new Promise(resolve => {
+    const dlg   = els.haymansDialog;
+    const input = els.haymansStoreInput;
+    const list  = els.haymansStoreList;
+    const btnOk = els.haymansStoreOk;
+    const btnCancel = els.haymansStoreCancel;
+
+    if (!dlg || !input || !list || !btnOk || !btnCancel) {
+      // Fallback – if dialog not in DOM, just use prompt
+      const fallback = prompt('Which Haymans store should the PO be sent to?');
+      resolve((fallback || '').trim() || null);
+      return;
+    }
+
+    // Load previously used stores
+    const stores = getHaymansStores();
+
+    // Rebuild datalist options
+    list.innerHTML = '';
+    stores.forEach(s => {
+      const opt = document.createElement('option');
+      opt.value = s;
+      list.appendChild(opt);
+    });
+
+    // Pre-fill with last used store (if any)
+    input.value = stores[stores.length - 1] || '';
+
+    // Show dialog
+    dlg.style.display = 'flex';
+
+    // Make sure keyboard focus goes into the input
+    setTimeout(() => {
+      input.focus();
+      input.setSelectionRange(input.value.length, input.value.length);
+    }, 0);
+
+    function cleanup(result) {
+      dlg.style.display = 'none';
+      btnOk.onclick = null;
+      btnCancel.onclick = null;
+      input.onkeydown = null;
+      resolve(result);
+    }
+
+    btnOk.onclick = () => {
+      const val = (input.value || '').trim();
+      if (!val) {
+        toast('Haymans store not set.', false);
+        return;
+      }
+      cleanup(val);
+    };
+
+    btnCancel.onclick = () => {
+      cleanup(null);
+    };
+
+    // Allow Esc to cancel, Enter to accept
+    input.onkeydown = (ev) => {
+      if (ev.key === 'Escape') {
+        ev.preventDefault();
+        cleanup(null);
+      } else if (ev.key === 'Enter') {
+        ev.preventDefault();
+        btnOk.click();
+      }
+    };
+  });
+}
+
+/* Email PO Request – opens mail client with subject + body */
+if (els.emailPoRequest) {
+  els.emailPoRequest.addEventListener('click', async (e) => {
+    e.preventDefault();
+
+    if (!state.quote.length) {
+      toast('No items in quote.', false);
+      return;
+    }
+
+    const job = (els.jobNumber?.value || '').trim();
+    const delivery = (els.deliveryAddress?.value || '').trim();
+
+    // Supplier: use first item’s supplier, strip years (e.g. 2025)
+    const firstSupRaw = (state.quote[0].SUPPLIER || '').toString();
+    let supplierClean = firstSupRaw.replace(/\b20\d{2}\b/g, '').trim();
+    if (!supplierClean) supplierClean = 'Supplier';
+
+    let haymansSuffix = '';
+
+    // If supplier is Haymans, use the dialog (with autocomplete)
+    if (supplierClean.toUpperCase().startsWith('HAYMANS')) {
+      let store = await chooseHaymansStore();
+      if (!store) {
+        toast('Haymans store not set. Email not created.', false);
+        return;
+      }
+
+      store = store.trim();
+      if (!store) {
+        toast('Haymans store not set. Email not created.', false);
+        return;
+      }
+
+      haymansSuffix = ' ' + store;
+
+      // Save back to localStorage if new
+      let stores = getHaymansStores();
+      const exists = stores.some(s => s.toLowerCase() === store.toLowerCase());
+      if (!exists) {
+        stores.push(store);
+        saveHaymansStores(stores);
+      }
+    }
+
+    // Append Haymans suffix (or stay as-is for non-Haymans)
+    supplierClean += haymansSuffix;
+
+    const subject = job
+      ? `PO for job ${job}`
+      : 'PO request';
+
+    // Parts details from Step 1 "Notes to estimator"
+    let partsBlock = (els.notesEstimator?.value || '').trim();
+    if (!partsBlock) {
+      // Fallback: rebuild from current quote
+      partsBlock = buildItemsOnlyLines().join('\n');
+    }
+
+    const lines = [];
+
+    if (job) {
+      lines.push(`Please forward a PO to ${supplierClean} for job ${job}`);
+    } else {
+      lines.push(`Please forward a PO to ${supplierClean} for this job`);
+    }
+
+    lines.push('');
+
+    if (partsBlock) {
+      lines.push(partsBlock);
+      lines.push('');
+    }
+
+    if (delivery) {
+      lines.push(delivery);
+      lines.push('');
+    }
+
+    const body = lines.join('\n');
+
+    const mailtoUrl =
+      'mailto:?' +
+      'subject=' + encodeURIComponent(subject) +
+      '&body=' + encodeURIComponent(body);
+
+    window.location.href = mailtoUrl;
+  });
+}
+
 /* Build case helpers */
 
 function buildItemsOnlyLines() {
   return state.quote.map(i => {
     const qty = i.qty || 1;
-    return `${qty} x ${i.DESCRIPTION} — ${i.PARTNUMBER} — ${fmtPrice(i.PRICE)} each (${i.SUPPLIER} price list)`;
+    return `${qty} x ${i.DESCRIPTION} — ${i.PARTNUMBER} — ${fmtPrice(i.PRICE)} each (${i.SUPPLIER} price)`;
   });
 }
+
 function toNum(x, d = 0) {
   const n = parseFloat((x ?? '').toString());
   return Number.isNaN(n) ? d : n;
 }
+
 function buildLabourSummary() {
   const nh = toNum(state.buildcase.labourHoursNormal, 0);
   const nm = Math.max(0, parseInt(state.buildcase.numTechsNormal || '0', 10) || 0);
@@ -724,157 +979,225 @@ function buildLabourSummary() {
 
   const out = [];
   out.push(...linesMain);
+
   if (total > 0) {
-    if (out.length) out.push('');
     out.push(`Total labour: ${total} hours`);
   }
   if (linesAfter.length) {
-    out.push('');
     out.push(...linesAfter);
   }
+
   return out.join('\n');
 }
 
 function buildCaseStep1Fill() {
   const lines = buildItemsOnlyLines();
   const itemsTxt = lines.join('\n');
-  els.notesEstimator.value = itemsTxt;
+
+  if (els.notesEstimator) {
+    els.notesEstimator.value = itemsTxt;
+  }
+
   state.buildcase.notesEstimator = itemsTxt;
-  els.bc1ItemsCount.textContent = `Items: ${state.quote.length}`;
+
+  if (els.bc1ItemsCount) {
+    els.bc1ItemsCount.textContent = `Items: ${state.quote.length}`;
+  }
 }
 
-/* Page switching */
-
-function selectTab(tab) {
-  const tabs = [els.tabHome, els.tabParts, els.tabQuote, els.tabSettings];
-  tabs.forEach(b => {
-    if (!b) return;
-    if (b === tab) {
-      b.style.background = '#3b82f6';
-      b.style.color = '#fff';
-    } else {
-      b.style.background = '#fff';
-      b.style.color = '#111';
-    }
-  });
-}
+/* ---------- Page switching ---------- */
 
 function hideAllPages() {
-  if (els.homePage) els.homePage.style.display = 'none';
-  if (els.partsPage) els.partsPage.style.display = 'none';
-  if (els.batteryPage) els.batteryPage.style.display = 'none';
-  if (els.quotePage) els.quotePage.style.display = 'none';
-  if (els.settingsPage) els.settingsPage.style.display = 'none';
+  if (els.homePage)       els.homePage.style.display = 'none';
+  if (els.batteryPage)    els.batteryPage.style.display = 'none';
+  if (els.partsPage)      els.partsPage.style.display = 'none';
+  if (els.quotePage)      els.quotePage.style.display = 'none';
+  if (els.settingsPage)   els.settingsPage.style.display = 'none';
   if (els.buildcase1Page) els.buildcase1Page.style.display = 'none';
   if (els.buildcase2Page) els.buildcase2Page.style.display = 'none';
   if (els.buildcase3Page) els.buildcase3Page.style.display = 'none';
+  if (els.feedbackPage)   els.feedbackPage.style.display = 'none';
 }
 
 function showHomePage() {
   hideAllPages();
   if (els.homePage) els.homePage.style.display = 'block';
-  selectTab(els.tabHome);
-  renderDiagnostics();
-}
-
-function showPartsPage() {
-  hideAllPages();
-  if (els.partsPage) els.partsPage.style.display = 'block';
-  selectTab(els.tabParts);
   renderDiagnostics();
 }
 
 function showBatteryPage() {
   hideAllPages();
   if (els.batteryPage) els.batteryPage.style.display = 'block';
-  // Battery lives under the Home “area” conceptually, but we’ll leave Home tab selected
-  selectTab(els.tabHome);
+  recalcBattery();
+  renderDiagnostics();
+}
+
+function showFeedbackPage() {
+  hideAllPages();
+  if (els.feedbackPage) els.feedbackPage.style.display = 'block';
+  renderDiagnostics();
+}
+
+function showPartsPage() {
+  hideAllPages();
+  if (els.partsPage) els.partsPage.style.display = 'block';
+  renderParts();
   renderDiagnostics();
 }
 
 function showQuotePage() {
   hideAllPages();
   if (els.quotePage) els.quotePage.style.display = 'block';
-  selectTab(els.tabQuote);
+  renderQuote();
   renderDiagnostics();
 }
 
 function showSettingsPage() {
   hideAllPages();
   if (els.settingsPage) els.settingsPage.style.display = 'block';
-  selectTab(els.tabSettings);
   renderDiagnostics();
 }
 
 function showBuild1() {
   hideAllPages();
   if (els.buildcase1Page) els.buildcase1Page.style.display = 'block';
-  selectTab(els.tabQuote);
 
-  els.notesCustomer.value = state.buildcase.notesCustomer || '';
-  if (state.buildcase.notesEstimator && state.buildcase.notesEstimator.trim().length > 0) {
-    els.notesEstimator.value = state.buildcase.notesEstimator;
-  } else {
-    buildCaseStep1Fill();
+  if (els.notesCustomer) {
+    els.notesCustomer.value = state.buildcase.notesCustomer || '';
   }
-  els.bc1ItemsCount.textContent = `Items: ${state.quote.length}`;
+
+  buildCaseStep1Fill();
+
   renderDiagnostics();
 }
+
 function showBuild2() {
   hideAllPages();
   if (els.buildcase2Page) els.buildcase2Page.style.display = 'block';
-  selectTab(els.tabQuote);
 
-  if (state.buildcase.routineVisit === 'yes') els.routineYes.checked = true;
-  else if (state.buildcase.routineVisit === 'no') els.routineNo.checked = true;
-  else {
-    els.routineYes.checked = false;
-    els.routineNo.checked = false;
+  if (state.buildcase.routineVisit === 'yes') {
+    if (els.routineYes) els.routineYes.checked = true;
+    if (els.routineNo)  els.routineNo.checked  = false;
+  } else if (state.buildcase.routineVisit === 'no') {
+    if (els.routineNo)  els.routineNo.checked  = true;
+    if (els.routineYes) els.routineYes.checked = false;
+  } else {
+    if (els.routineYes) els.routineYes.checked = false;
+    if (els.routineNo)  els.routineNo.checked  = false;
   }
 
-  els.accomNights.value = state.buildcase.accomNights || '';
-  els.labourHoursNormal.value = state.buildcase.labourHoursNormal || '';
-  els.numTechsNormal.value = state.buildcase.numTechsNormal || '';
-  els.travelHoursNormal.value = state.buildcase.travelHoursNormal || '';
-  els.labourHoursAfter.value = state.buildcase.labourHoursAfter || '';
-  els.numTechsAfter.value = state.buildcase.numTechsAfter || '';
-  els.travelHoursAfter.value = state.buildcase.travelHoursAfter || '';
+  if (els.accomNights)       els.accomNights.value       = state.buildcase.accomNights       || '';
+  if (els.labourHoursNormal) els.labourHoursNormal.value = state.buildcase.labourHoursNormal || '';
+  if (els.numTechsNormal)    els.numTechsNormal.value    = state.buildcase.numTechsNormal    || '';
+  if (els.travelHoursNormal) els.travelHoursNormal.value = state.buildcase.travelHoursNormal || '';
+  if (els.labourHoursAfter)  els.labourHoursAfter.value  = state.buildcase.labourHoursAfter  || '';
+  if (els.numTechsAfter)     els.numTechsAfter.value     = state.buildcase.numTechsAfter     || '';
+  if (els.travelHoursAfter)  els.travelHoursAfter.value  = state.buildcase.travelHoursAfter  || '';
 
   renderDiagnostics();
 }
+
 function showBuild3() {
   hideAllPages();
   if (els.buildcase3Page) els.buildcase3Page.style.display = 'block';
-  selectTab(els.tabQuote);
 
-  const base = buildItemsOnlyLines().join('\n');
+  const base   = buildItemsOnlyLines().join('\n');
   const labour = buildLabourSummary();
-  els.notesEstimator3.value = labour ? `${base}\n\n${labour}` : base;
 
-  els.notesCustomer3.value = state.buildcase.notesCustomer || '';
-  els.bc3ItemsCount.textContent = `Items: ${state.quote.length}`;
+  if (els.notesEstimator3) {
+    els.notesEstimator3.value = labour ? `${base}\n\n${labour}` : base;
+  }
+
+  if (els.notesCustomer3)  els.notesCustomer3.value  = state.buildcase.notesCustomer || '';
+  if (els.bc3ItemsCount)   els.bc3ItemsCount.textContent = `Items: ${state.quote.length}`;
+
   renderDiagnostics();
 }
 
+// Simple global nav helper so HTML buttons can call these directly
+window.appNav = {
+  home:     showHomePage,
+  parts:    showPartsPage,
+  quote:    showQuotePage,
+  battery:  showBatteryPage,
+  settings: showSettingsPage,
+  feedback: showFeedbackPage,
+};
+
 /* Tab click handlers */
 
-if (els.tabHome) els.tabHome.addEventListener('click', showHomePage);
 if (els.tabParts) els.tabParts.addEventListener('click', showPartsPage);
 if (els.tabQuote) els.tabQuote.addEventListener('click', showQuotePage);
 if (els.tabSettings) els.tabSettings.addEventListener('click', showSettingsPage);
 
-/* Home tool buttons */
+// Home page tiles
+if (els.btnHomeParts)    els.btnHomeParts.addEventListener('click', showPartsPage);
+if (els.btnHomeBattery)  els.btnHomeBattery.addEventListener('click', showBatteryPage);
 
-if (els.btnGoParts) els.btnGoParts.addEventListener('click', showPartsPage);
-if (els.btnGoBattery) els.btnGoBattery.addEventListener('click', showBatteryPage);
+// Back-to-Home buttons
+if (els.goHomeFromParts)    els.goHomeFromParts.addEventListener('click', showHomePage);
+if (els.goHomeFromQuote)    els.goHomeFromQuote.addEventListener('click', showHomePage);
+if (els.goHomeFromBattery)  els.goHomeFromBattery.addEventListener('click', showHomePage);
+if (els.goHomeFromSettings) els.goHomeFromSettings.addEventListener('click', showHomePage);
+
+// Feedback page buttons
+if (els.goHomeFromFeedback) {
+  els.goHomeFromFeedback.addEventListener('click', showHomePage);
+}
+
+if (els.feedbackCancel) {
+  els.feedbackCancel.addEventListener('click', showHomePage);
+}
+
+if (els.feedbackClear) {
+  els.feedbackClear.addEventListener('click', () => {
+    if (els.feedbackSubject) els.feedbackSubject.value = '';
+    if (els.feedbackText)    els.feedbackText.value = '';
+  });
+}
+
+// Send opens an email with subject + body
+if (els.feedbackSend) {
+  els.feedbackSend.addEventListener('click', () => {
+    const subject = (els.feedbackSubject?.value || '').trim();
+    const txt     = (els.feedbackText?.value || '').trim();
+
+    if (!subject) {
+      toast('Enter a subject for your feedback.', false);
+      return;
+    }
+    if (!txt) {
+      toast('Enter some feedback details before sending.', false);
+      return;
+    }
+
+    // Build body with a little context
+    const lines = [
+      txt,
+      '',
+      '---',
+      `App version: ${APP_VERSION}`,
+      `CSV source: ${state.csvMeta.source || 'None'}`,
+      `Parts rows loaded: ${state.rows.length}`,
+    ];
+    const body = encodeURIComponent(lines.join('\n'));
+    const subj = encodeURIComponent(subject);
+
+    const mailto = `mailto:${FEEDBACK_EMAIL}?subject=${subj}&body=${body}`;
+    window.location.href = mailto;
+
+    toast('Opening email with your feedback…', true);
+  });
+}
 
 /* Build case navigation */
 
-if (els.btnBuildCase) els.btnBuildCase.addEventListener('click', showBuild1);
-if (els.btnBackToQuote) els.btnBackToQuote.addEventListener('click', showQuotePage);
-if (els.btnBackToQuoteFrom3) els.btnBackToQuoteFrom3.addEventListener('click', showQuotePage);
-if (els.btnBackToBuild1) els.btnBackToBuild1.addEventListener('click', showBuild1);
-if (els.btnBackToBuild2) els.btnBackToBuild2.addEventListener('click', showBuild2);
+if (els.btnBuildCase)           els.btnBuildCase.addEventListener('click', showBuild1);
+if (els.btnBackToQuote)         els.btnBackToQuote.addEventListener('click', showQuotePage);
+if (els.btnBackToQuoteFrom3)    els.btnBackToQuoteFrom3.addEventListener('click', showQuotePage);
+if (els.btnBackToQuoteFrom2)    els.btnBackToQuoteFrom2.addEventListener('click', showQuotePage);
+if (els.btnBackToBuild1)        els.btnBackToBuild1.addEventListener('click', showBuild1);
+if (els.btnBackToBuild2)        els.btnBackToBuild2.addEventListener('click', showBuild2);
 
 if (els.btnToBuild2) els.btnToBuild2.addEventListener('click', () => {
   state.buildcase.notesCustomer = (els.notesCustomer?.value || '').trim();
@@ -883,13 +1206,10 @@ if (els.btnToBuild2) els.btnToBuild2.addEventListener('click', () => {
   showBuild2();
 });
 if (els.btnToBuild3) els.btnToBuild3.addEventListener('click', () => {
-  if (els.routineYes?.checked) {
-    state.buildcase.routineVisit = 'yes';
-  } else if (els.routineNo?.checked) {
-    state.buildcase.routineVisit = 'no';
-  } else {
-    state.buildcase.routineVisit = null;
-  }
+  if (els.routineYes?.checked) state.buildcase.routineVisit = 'yes';
+  else if (els.routineNo?.checked) state.buildcase.routineVisit = 'no';
+  else state.buildcase.routineVisit = null;
+
   state.buildcase.accomNights = (els.accomNights?.value || '').trim();
   state.buildcase.labourHoursNormal = (els.labourHoursNormal?.value || '').trim();
   state.buildcase.numTechsNormal = (els.numTechsNormal?.value || '').trim();
@@ -918,6 +1238,28 @@ if (els.btnClearQuote) els.btnClearQuote.addEventListener('click', () => {
     state.quote = [];
     saveQuote();
     renderQuote();
+
+    state.buildcase.routineVisit       = null;
+    state.buildcase.accomNights        = '';
+    state.buildcase.labourHoursNormal  = '';
+    state.buildcase.numTechsNormal     = '';
+    state.buildcase.travelHoursNormal  = '';
+    state.buildcase.labourHoursAfter   = '';
+    state.buildcase.numTechsAfter      = '';
+    state.buildcase.travelHoursAfter   = '';
+    saveBuildcase();
+
+    if (els.routineYes)       els.routineYes.checked = false;
+    if (els.routineNo)        els.routineNo.checked = false;
+    if (els.accomNights)      els.accomNights.value = '';
+    if (els.labourHoursNormal) els.labourHoursNormal.value = '';
+    if (els.numTechsNormal)   els.numTechsNormal.value = '';
+    if (els.travelHoursNormal) els.travelHoursNormal.value = '';
+    if (els.labourHoursAfter) els.labourHoursAfter.value = '';
+    if (els.numTechsAfter)    els.numTechsAfter.value = '';
+    if (els.travelHoursAfter) els.travelHoursAfter.value = '';
+
+    renderDiagnostics();
     toast('Quote cleared.', true);
     showPartsPage();
   }
@@ -926,15 +1268,16 @@ if (els.btnClearQuote) els.btnClearQuote.addEventListener('click', () => {
 /* Manual add button */
 
 if (els.manualAddBtn) els.manualAddBtn.addEventListener('click', () => {
-  if (!manualInputsValid()) {
-    toast('Fill supplier, description, part number and price.', false);
+  const desc = (els.manualDescription?.value || '').trim();
+  if (!desc) {
+    toast('Enter a description for the manual item.', false);
     return;
   }
-  const sup = els.manualSupplier.value.trim();
-  const desc = els.manualDescription.value.trim();
-  const pn = els.manualPart.value.trim();
-  const priceEach = parseFloat((els.manualPrice.value || '').toString().replace(/[^0-9.]/g, '')) || 0;
-  const qty = Math.max(1, parseInt(els.manualQty.value, 10) || 1);
+
+  const sup = (els.manualSupplier?.value || '').trim();
+  const pn = (els.manualPart?.value || '').trim();
+  const priceEach = parseFloat((els.manualPrice?.value || '').toString().replace(/[^0-9.]/g, '')) || 0;
+  const qty = Math.max(1, parseInt(els.manualQty?.value, 10) || 1);
 
   state.quote.push({
     SUPPLIER: sup,
@@ -946,61 +1289,99 @@ if (els.manualAddBtn) els.manualAddBtn.addEventListener('click', () => {
   saveQuote();
   renderQuote();
 
-  els.manualSupplier.value = '';
-  els.manualDescription.value = '';
-  els.manualPart.value = '';
-  els.manualPrice.value = '';
-  els.manualQty.value = '1';
+  if (els.manualSupplier) els.manualSupplier.value = '';
+  if (els.manualDescription) els.manualDescription.value = '';
+  if (els.manualPart) els.manualPart.value = '';
+  if (els.manualPrice) els.manualPrice.value = '';
+  if (els.manualQty) els.manualQty.value = '1';
   setManualBtnEnabled(false);
   toast('Manual item added.', true);
 });
 
-/* ---------- Battery calculation ---------- */
+/* ---------- Battery calculator ---------- */
 
-function resetBatteryForm() {
-  if (els.battIq) els.battIq.value = '';
-  if (els.battIa) els.battIa.value = '';
-  if (els.battTq) els.battTq.value = '';
-  if (els.battTa) els.battTa.value = '';
-  if (els.battL) els.battL.value = '';
-  if (els.battFc) els.battFc.value = '';
-  if (els.battResult) els.battResult.textContent = 'Result will appear here.';
+function recalcBattery() {
+  if (!els.battCap20 || !els.battTqDisplay || !els.battTaDisplay) return;
+
+  const Iq = parseFloat(els.battIq?.value || '') || 0;
+  const Ia = parseFloat(els.battIa?.value || '') || 0;
+
+  const Tq = state.battery.Tq || 24; // hours
+  const Ta = 0.5; // hours, fixed
+  const Fc = 2;   // capacity derating factor for alarm term
+  const L = 1;    // compensation factor (currently 1)
+
+  const cap20 = L * ((Iq * Tq) + Fc * (Ia * Ta));
+
+  const ageMult = 1.25;
+  const ageCap = cap20 * ageMult;
+
+  const fmt2 = n => n.toFixed(2);
+
+  els.battTqDisplay.textContent = fmt2(Tq) + ' Hr';
+  els.battTaDisplay.textContent = fmt2(Ta) + ' Hr';
+
+  if (els.battCap20) els.battCap20.textContent = fmt2(cap20) + ' Ah';
+  if (els.battAgeCap) els.battAgeCap.textContent = fmt2(ageCap) + ' Ah';
+  if (els.battRequired) els.battRequired.textContent = fmt2(ageCap) + ' Ah';
 }
 
-function calcBattery() {
-  if (!els.battResult) return;
+function initBattery() {
+  if (!els.batteryPage) return;
 
-  const Iq = toNum(els.battIq?.value, NaN);
-  const Ia = toNum(els.battIa?.value, NaN);
-  const Tq = toNum(els.battTq?.value, NaN);
-  const Ta = toNum(els.battTa?.value, NaN);
-  const L  = toNum(els.battL?.value, NaN);
-  const Fc = toNum(els.battFc?.value, NaN);
+  state.battery.Tq = 24;
 
-  if (
-    Number.isNaN(Iq) ||
-    Number.isNaN(Ia) ||
-    Number.isNaN(Tq) ||
-    Number.isNaN(Ta) ||
-    Number.isNaN(L) ||
-    Number.isNaN(Fc)
-  ) {
-    els.battResult.textContent = 'Please fill in all fields with numbers.';
-    return;
+  if (els.battBtnTq24) {
+    els.battBtnTq24.addEventListener('click', () => {
+      state.battery.Tq = 24;
+      els.battBtnTq24.classList.add('active');
+      if (els.battBtnTq72) els.battBtnTq72.classList.remove('active');
+      recalcBattery();
+    });
+  }
+  if (els.battBtnTq72) {
+    els.battBtnTq72.addEventListener('click', () => {
+      state.battery.Tq = 72;
+      els.battBtnTq72.classList.add('active');
+      if (els.battBtnTq24) els.battBtnTq24.classList.remove('active');
+      recalcBattery();
+    });
   }
 
-  const C = L * ((Iq * Tq) + (Fc * (Ia * Ta)));
-  if (C <= 0) {
-    els.battResult.textContent = 'Check inputs – result is zero or negative.';
-    return;
-  }
+  if (els.battIq) els.battIq.addEventListener('input', recalcBattery);
+  if (els.battIa) els.battIa.addEventListener('input', recalcBattery);
 
-  const rounded = Math.round(C * 10) / 10;
-  els.battResult.textContent = `Required battery capacity: ${rounded} Ah`;
+  recalcBattery();
 }
 
-if (els.btnBattCalc) els.btnBattCalc.addEventListener('click', calcBattery);
-if (els.btnBattReset) els.btnBattReset.addEventListener('click', resetBatteryForm);
+// Toggle routine visit radios: click again to turn off
+if (els.routineYes) {
+  els.routineYes.addEventListener('click', () => {
+    if (state.buildcase.routineVisit === 'yes') {
+      state.buildcase.routineVisit = null;
+      els.routineYes.checked = false;
+    } else {
+      state.buildcase.routineVisit = 'yes';
+      els.routineYes.checked = true;
+      if (els.routineNo) els.routineNo.checked = false;
+    }
+    saveBuildcase();
+  });
+}
+
+if (els.routineNo) {
+  els.routineNo.addEventListener('click', () => {
+    if (state.buildcase.routineVisit === 'no') {
+      state.buildcase.routineVisit = null;
+      els.routineNo.checked = false;
+    } else {
+      state.buildcase.routineVisit = 'no';
+      els.routineNo.checked = true;
+      if (els.routineYes) els.routineYes.checked = false;
+    }
+    saveBuildcase();
+  });
+}
 
 /* ---------- Diagnostics + debug export ---------- */
 
@@ -1064,12 +1445,29 @@ if (els.btnDiagCopy) {
 
 /* ---------- Start ---------- */
 
+/* ---------- Start ---------- */
+
 function start() {
+  // Hide tab bar if present
+  if (els.tabParts) els.tabParts.style.display = 'none';
+  if (els.tabQuote) els.tabQuote.style.display = 'none';
+  if (els.tabSettings) els.tabSettings.style.display = 'none';
+
   renderParts();
   renderQuote();
   updateAddToQuoteState();
-  // Default to Home dashboard
-  showHomePage();
+  initBattery();
+
+  if (els.homePage) {
+    showHomePage();
+  } else {
+    showPartsPage();
+  }
 }
 
-start();
+// Ensure DOM is ready before we run anything
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', start);
+} else {
+  start();
+}

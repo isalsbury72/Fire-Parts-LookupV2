@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>Fire Parts Lookup v5.3.6</title>
+  <title>Fire Parts Lookup v5.3.10</title>
   <meta name="viewport" content="width=device-width,initial-scale=1">
 
   <link rel="manifest" href="manifest.json">
@@ -17,6 +17,11 @@
     .ver { margin-left: auto; background: #fff; color: #1d4ed8; font-weight: 600; padding: 2px 8px; border-radius: 999px; font-size: 12px; display: inline-flex; align-items: center; gap: 6px; }
     .auth-pill { background: #dcfce7; color: #166534; border-radius: 999px; padding: 2px 8px; font-size: 11px; border: 1px solid #22c55e; display: inline-flex; align-items: center; gap: 4px; animation: authFadeIn 0.3s ease-out; }
 
+    /* Tabs – no longer used, hide the whole strip */
+    .tabs {
+      display: none;
+    }
+
     main { padding: 12px 16px 80px; max-width: 960px; margin: 0 auto; }
     .card { background:#fff; border:1px solid #eee; border-radius:12px; padding:12px; box-shadow: 0 1px 2px rgba(0,0,0,0.04); margin-bottom:12px; }
     .row { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
@@ -26,7 +31,21 @@
     input[type="search"]:focus { box-shadow: 0 0 0 2px rgba(59,130,246,0.25); }
 
     input[type="file"] { display:none; }
-    .btn { display:inline-flex; align-items:center; justify-content:center; gap:6px; padding:10px 12px; border-radius:10px; border:1px solid #d1d5db; background:#fff; cursor:pointer; font-size:13px; white-space:nowrap; }
+
+    /* Pill buttons */
+    .btn {
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap:6px;
+      padding:10px 12px;
+      border-radius:999px;
+      border:1px solid #d1d5db;
+      background:#fff;
+      cursor:pointer;
+      font-size:13px;
+      white-space:nowrap;
+    }
     .btn-secondary { background:#f9fafb; }
     .btn-primary { border-color:#2563eb; background:#eff6ff; color:#1d4ed8; }
     .btn-ghost { background:#ffffff; color:#374151; border-color:#9ca3af; }
@@ -35,9 +54,16 @@
 
     .hint { font-size:12px; color:#555; margin-top:6px; }
 
-    /* Tabs */
-    .tabs { display:flex; gap:6px; margin-bottom:10px; }
-    .tab-btn { flex:1; padding:8px 10px; border-radius:999px; border:1px solid #d1d5db; background:#fff; cursor:pointer; font-size:13px; }
+    /* Legacy tab button style (used for small nav rows) */
+    .tab-btn {
+      flex:1;
+      padding:8px 10px;
+      border-radius:999px;
+      border:1px solid #d1d5db;
+      background:#fff;
+      cursor:pointer;
+      font-size:13px;
+    }
 
     table { width:100%; border-collapse:collapse; margin-top:12px; }
     th, td { text-align:left; padding:8px 6px; border-bottom:1px solid:#eee; font-size:13px; vertical-align:top; }
@@ -85,33 +111,161 @@
       .action-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     }
 
-    /* Home dashboard buttons */
-    .tool-grid {
+    /* Home page */
+    .home-grid {
       display:grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap:12px;
-      margin-top:8px;
+      gap:10px;
     }
-    .tool-card {
+    .home-tile {
       border-radius:14px;
       border:1px solid #d1d5db;
-      padding:12px;
+      padding:10px;
       background:#f9fafb;
-      cursor:pointer;
       display:flex;
       flex-direction:column;
-      gap:4px;
+      align-items:flex-start;
+      justify-content:center;
+      min-height:80px;
+      cursor:pointer;
     }
-    .tool-card-title {
-      font-size:14px;
-      font-weight:600;
-    }
-    .tool-card-desc {
-      font-size:12px;
-      color:#6b7280;
+    .home-tile-title { font-size:14px; font-weight:600; margin-bottom:4px; }
+    .home-tile-caption { font-size:12px; color:#6b7280; }
+
+    @media (max-width: 480px) {
+      .home-grid { grid-template-columns: 1fr; }
     }
 
-    @keyframes authFadeIn { from { opacity:0; transform:translateY(-2px); } to { opacity:1; transform:translateY(0); } }
+    .batt-wrap {
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+    }
+    .batt-row {
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:8px;
+    }
+
+    /* Shared pill box styling */
+    .batt-label-pill,
+    .batt-input-pill,
+    .batt-required-pill {
+      border-radius:999px;
+      padding:10px 16px;
+      line-height:1.4;
+      border:1px solid #e5e7eb;
+      background:#f9fafb;
+    }
+
+    /* Left-hand labels */
+    .batt-label-pill {
+      flex:1 1 auto;
+      min-width:0;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      font-size:14px;
+    }
+
+    /* Right-hand value pills – fixed width */
+    .batt-input-pill,
+    .batt-required-pill {
+      flex:0 0 86px;
+      width:86px;
+      display:flex;
+      align-items:center;
+      justify-content:flex-end;
+      font-variant-numeric: tabular-nums;
+      font-size:18px;
+    }
+    .batt-input-pill input {
+      width:100%;
+      border:none;
+      outline:none;
+      background:transparent;
+      font-size:18px;
+      text-align:right;
+      font-variant-numeric: tabular-nums;
+    }
+    .batt-input-pill span {
+      width:100%;
+      text-align:right;
+      font-variant-numeric: tabular-nums;
+    }
+    .batt-input-pill:focus-within {
+      border-color:#2563eb;
+      box-shadow:0 0 0 2px rgba(37,99,235,0.25);
+      background:#eff6ff;
+    }
+
+    /* Required capacity pill */
+    .batt-required-pill {
+      background:#f97316;
+      border-color:#ea580c;
+      color:#fff;
+      font-weight:600;
+      justify-content:flex-end;
+    }
+
+    .batt-required-row {
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:8px;
+      margin-top:4px;
+    }
+
+    /* Tq buttons */
+    .batt-tq-buttons {
+      display:flex;
+      gap:8px;
+      margin-top:8px;
+    }
+    .batt-tq-btn {
+      flex:1;
+      border-radius:999px;
+      border:1px solid #d1d5db;
+      background:#f9fafb;
+      padding:10px 16px;
+      font-size:18px;
+      cursor:pointer;
+    }
+    .batt-tq-btn.active {
+      border-color:#2563eb;
+      background:#eff6ff;
+      color:#1d4ed8;
+      font-weight:600;
+    }
+
+    @media (max-width: 480px) {
+      .batt-input-pill,
+      .batt-required-pill {
+        flex:0 0 78px;
+        width:78px;
+        padding:9px 14px;
+        font-size:16px;
+      }
+      .batt-input-pill input {
+        font-size:16px;
+      }
+      .batt-required-pill {
+        font-size:16px;
+      }
+      .batt-label-pill {
+        font-size:13px;
+      }
+      .batt-tq-btn {
+        font-size:16px;
+        padding:9px 14px;
+      }
+    }
+
+    @keyframes authFadeIn {
+      from { opacity:0; transform:translateY(-2px); }
+      to   { opacity:1; transform:translateY(0); }
+    }
   </style>
 </head>
 <body>
@@ -122,59 +276,201 @@
       <div class="small">Offline-friendly parts and quote helper</div>
     </div>
     <div class="ver">
-      v5.3.6
+      v5.3.10
       <span id="authBanner" class="auth-pill" style="display:inline-block;">Authorised users only</span>
     </div>
   </header>
 
   <main>
-    <!-- Tabs -->
-    <div class="tabs">
-      <button id="tabHome" class="tab-btn">Home</button>
-      <button id="tabParts" class="tab-btn">Parts</button>
-      <button id="tabQuote" class="tab-btn">Quote</button>
-      <button id="tabSettings" class="tab-btn">Settings</button>
-    </div>
 
-    <!-- Home dashboard -->
+    <!-- Home page -->
     <div id="homePage">
       <div class="card">
-        <h2 style="margin-top:0; font-size:16px;">Tools</h2>
-        <p class="small">Choose where you want to go.</p>
+        <h2 style="margin-top:0; font-size:18px; text-align:center;">Home</h2>
+        <p class="small" style="margin-bottom:12px; text-align:center;">Choose an area to jump into.</p>
 
-        <div class="tool-grid">
-          <button id="btnGoParts" class="tool-card">
-            <div class="tool-card-title">🔧 Fire Parts lookup</div>
-            <div class="tool-card-desc">Search parts, build quotes and cases.</div>
+        <div class="home-grid">
+          <button id="btnHomeParts"
+                  class="home-tile"
+                  onclick="appNav.parts()">
+            <div class="home-tile-title">Fire Parts lookup</div>
+            <div class="home-tile-caption">Search parts, build quotes and cases.</div>
           </button>
 
-          <button id="btnGoBattery" class="tool-card">
-            <div class="tool-card-title">🔋 Battery calculation</div>
-            <div class="tool-card-desc">Quick standby / alarm load sizing.</div>
+          <button id="btnHomeBattery"
+                  class="home-tile"
+                  onclick="appNav.battery()">
+            <div class="home-tile-title">Battery calculator</div>
+            <div class="home-tile-caption">Quick capacity estimate for jobs.</div>
           </button>
+
+          <button id="btnHomeSettings"
+                  class="home-tile"
+                  onclick="appNav.settings()">
+            <div class="home-tile-title">Settings</div>
+            <div class="home-tile-caption">App version, CSV data, diagnostics.</div>
+          </button>
+
+          <!-- New Feedback home tile -->
+          <button id="btnHomeFeedback"
+                  class="home-tile"
+                  onclick="appNav.feedback()">
+            <div class="home-tile-title">Feedback</div>
+            <div class="home-tile-caption">Send a quick note back to Ian.</div>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Battery page -->
+    <div id="batteryPage" style="display:none;">
+      <div style="margin-bottom:8px; display:flex; gap:8px;">
+        <button class="btn btn-ghost" id="goHomeFromBattery" style="flex:1;">← Home</button>
+        <button class="btn btn-primary" style="flex:1; background:#3b82f6; color:white;" disabled>
+          Battery calculator
+        </button>
+      </div>
+
+      <div class="card">
+        <h2 style="margin-top:0; font-size:18px; text-align:center;">Battery calculator</h2>
+        <p class="small" style="font-size:12px; text-align:center;">
+          Simple 20&nbsp;Hr capacity estimate using standby and alarm loads.
+        </p>
+
+        <div class="batt-wrap">
+          <!-- Iq -->
+          <div class="batt-row">
+            <div class="batt-label-pill">Quiescent Current (Iq)</div>
+            <div class="batt-input-pill">
+              <input id="battIq" type="number" step="0.01" inputmode="decimal" placeholder="0.00">
+            </div>
+          </div>
+
+          <!-- Ia -->
+          <div class="batt-row">
+            <div class="batt-label-pill">Alarm Bode Current (Ia)</div>
+            <div class="batt-input-pill">
+              <input id="battIa" type="number" step="0.01" inputmode="decimal" placeholder="0.00">
+            </div>
+          </div>
+
+          <!-- Tq display -->
+          <div class="batt-row">
+            <div class="batt-label-pill">Quiescent Standby Time (Tq)</div>
+            <div class="batt-input-pill">
+              <span id="battTqDisplay">24 Hr</span>
+            </div>
+          </div>
+
+          <!-- Ta fixed -->
+          <div class="batt-row">
+            <div class="batt-label-pill">Alarm Standby Time (Ta)</div>
+            <div class="batt-input-pill">
+              <span id="battTaDisplay">0.5 Hr</span>
+            </div>
+          </div>
+
+          <!-- Calculated 20 hr capacity -->
+          <div class="batt-row" style="margin-top:4px;">
+            <div class="batt-label-pill">Calculated 20&nbsp;Hr Capacity</div>
+            <div class="batt-input-pill">
+              <span id="battCap20">0.00 Ah</span>
+            </div>
+          </div>
+
+          <!-- Age factor -->
+          <div class="batt-row">
+            <div class="batt-label-pill">Age Factor (capacity × 1.25)</div>
+            <div class="batt-input-pill">
+              <span id="battAgeCap">0.00 Ah</span>
+            </div>
+          </div>
+
+          <!-- Required capacity (orange) -->
+          <div class="batt-required-row">
+            <div class="batt-label-pill" style="flex:1;">Required Capacity</div>
+            <div class="batt-required-pill">
+              <span id="battRequired">0.00 Ah</span>
+            </div>
+          </div>
+
+          <!-- Tq buttons -->
+          <div class="batt-tq-buttons">
+            <button id="battBtnTq24" class="batt-tq-btn active">Tq @ 24 Hr</button>
+            <button id="battBtnTq72" class="batt-tq-btn">Tq @ 72 Hr</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Feedback page -->
+    <div id="feedbackPage" style="display:none;">
+      <div style="margin-bottom:8px; display:flex; gap:8px;">
+        <button class="btn btn-ghost" id="goHomeFromFeedback" style="flex:1;">← Home</button>
+        <button class="btn btn-primary" style="flex:1; background:#3b82f6; color:white;" disabled>
+          Feedback
+        </button>
+      </div>
+
+      <div class="card">
+        <h2 style="margin-top:0; font-size:18px; text-align:center;">Feedback</h2>
+        <p class="small" style="font-size:12px; text-align:center;">
+          Leave a quick note about issues, ideas, or parts you’d like added.
+        </p>
+
+        <div style="margin-top:8px;">
+          <label class="small" for="feedbackSubject">Subject</label>
+          <input id="feedbackSubject"
+                 class="bc-input"
+                 type="text"
+                 placeholder="Short subject e.g. Missing part or Bug on battery calc">
+        </div>
+
+        <div style="margin-top:8px;">
+          <label class="small" for="feedbackText">Feedback details</label>
+          <textarea id="feedbackText"
+                    class="bc-textarea"
+                    placeholder="Type your feedback here..."></textarea>
+        </div>
+
+        <div style="margin-top:10px; display:flex; gap:8px; justify-content:space-between; flex-wrap:wrap;">
+          <button id="feedbackCancel" class="btn btn-ghost" style="flex:1;">Cancel</button>
+          <button id="feedbackClear" class="btn btn-secondary" style="flex:1;">Clear</button>
+          <button id="feedbackSend" class="btn btn-primary" style="flex:1;">Send</button>
         </div>
       </div>
     </div>
 
     <!-- Parts page -->
     <div id="partsPage" style="display:none;">
+      <!-- Row with Home / Quote / Parts buttons -->
+      <div style="margin-bottom:8px; display:flex; gap:8px;">
+        <button id="goHomeFromParts"
+                class="tab-btn"
+                style="border-color:#9ca3af; background:#ffffff; color:#374151;">
+          ← Home
+        </button>
+        <button class="tab-btn"
+                onclick="appNav.quote()"
+                style="border-color:#d1d5db; background:#f9fafb; color:#111827;">
+          Quote page
+        </button>
+        <button class="tab-btn"
+                disabled
+                style="border-color:#2563eb; background:#3b82f6; color:#ffffff;">
+          Parts
+        </button>
+      </div>
+
       <div class="card">
-        <h2 style="margin-top:0, font-size:16px;">Parts lookup</h2>
+        <h2 style="margin-top:0; font-size:18px; text-align:center;">Parts lookup</h2>
 
         <div class="row" style="margin-bottom:8px;">
           <input id="q" type="search" placeholder="Search supplier, type, description or part number…">
         </div>
 
-        <div class="row" style="margin-bottom:4px;">
-          <label for="csv" class="btn">Load local CSV</label>
-          <input id="csv" type="file" accept=".csv">
-          <button id="loadShared" class="btn btn-secondary">Load shared file</button>
-          <button id="clearCache" class="btn btn-secondary">Clear data</button>
-        </div>
-
-        <div class="hint">
-          Showing <span id="count">0</span> items.<br>
-          <span id="partsCsvSummary">CSV: None loaded</span>
+        <div class="hint" style="text-align:center; font-size:12px;">
+          Showing <span id="count">0</span> items.
         </div>
 
         <div style="display:flex; align-items:center; gap:8px; margin-top:8px;">
@@ -204,65 +500,35 @@
       </div>
     </div>
 
-    <!-- Battery calculation page -->
-    <div id="batteryPage" style="display:none;">
-      <div class="card">
-        <h2 style="margin-top:0; font-size:16px;">Battery calculation</h2>
-        <p class="small">
-          Formula: C = L × [ (Iq × Tq) + Fc × (Ia × Ta) ]
-        </p>
-
-        <div class="card" style="margin-top:8px;">
-          <h3 style="margin:0 0 6px 0; font-size:14px;">Inputs</h3>
-
-          <div class="row" style="margin-bottom:8px;">
-            <div style="flex:1; min-width:140px;">
-              <label class="small" for="battIq">Iq – Total quiescent current (A)</label><br>
-              <input id="battIq" class="bc-input" type="number" step="0.01" min="0" placeholder="e.g. 0.15">
-            </div>
-            <div style="flex:1; min-width:140px;">
-              <label class="small" for="battIa">Ia – Total alarm current (A)</label><br>
-              <input id="battIa" class="bc-input" type="number" step="0.01" min="0" placeholder="e.g. 0.8">
-            </div>
-          </div>
-
-          <div class="row" style="margin-bottom:8px;">
-            <div style="flex:1; min-width:140px;">
-              <label class="small" for="battTq">Tq – Quiescent standby time (hours)</label><br>
-              <input id="battTq" class="bc-input" type="number" step="0.5" min="0" placeholder="e.g. 24">
-            </div>
-            <div style="flex:1; min-width:140px;">
-              <label class="small" for="battTa">Ta – Alarm load time (hours)</label><br>
-              <input id="battTa" class="bc-input" type="number" step="0.1" min="0" placeholder="e.g. 0.5">
-            </div>
-          </div>
-
-          <div class="row" style="margin-bottom:8px;">
-            <div style="flex:1; min-width:140px;">
-              <label class="small" for="battL">L – Compensation factor</label><br>
-              <input id="battL" class="bc-input" type="number" step="0.05" min="0" placeholder="e.g. 1.25">
-            </div>
-            <div style="flex:1; min-width:140px;">
-              <label class="small" for="battFc">Fc – Capacity derating factor</label><br>
-              <input id="battFc" class="bc-input" type="number" step="1" min="0" placeholder="e.g. 1">
-            </div>
-          </div>
-
-          <div style="margin-top:8px; display:flex; gap:8px; justify-content:flex-end; flex-wrap:wrap;">
-            <button id="btnBattReset" class="btn btn-secondary">Reset</button>
-            <button id="btnBattCalc" class="btn btn-primary">Calculate</button>
-          </div>
-
-          <p id="battResult" class="small" style="margin-top:10px;">Result will appear here.</p>
-        </div>
-      </div>
-    </div>
-
     <!-- Quote page -->
     <div id="quotePage" style="display:none;">
+
+      <!-- Top navigation pills -->
+      <div style="margin-bottom:8px; display:flex; gap:8px;">
+        <button id="goHomeFromQuote"
+                class="tab-btn"
+                style="border-color:#9ca3af; background:#ffffff; color:#374151;">
+          ← Home
+        </button>
+
+        <button class="tab-btn"
+                onclick="appNav.parts()"
+                style="border-color:#d1d5db; background:#f9fafb; color:#111827;">
+          Parts
+        </button>
+
+        <button class="tab-btn"
+                disabled
+                style="border-color:#2563eb; background:#3b82f6; color:#ffffff;">
+          Quote Items
+        </button>
+      </div>
+
       <div class="card">
-        <h2 style="margin-top:0; font-size:16px;">Quote items</h2>
-        <p class="small">Parts you add from the Parts tab will appear here. You can also add a manual line below.</p>
+        <h2 style="margin-top:0; font-size:18px; text-align:center;">Quote items</h2>
+        <p class="small" style="font-size:12px; text-align:center;">
+          Parts you add from the Parts page will appear here. You can also add a manual line below.
+        </p>
 
         <table style="width:100%; border-collapse:collapse; margin-top:8px;" id="quoteTable">
           <thead>
@@ -293,16 +559,16 @@
           <!-- Manual item section (hidden until toggled on) -->
           <div id="manualSection" style="display:none; margin-top:10px;">
             <div class="row" style="gap:8px; flex-wrap:wrap;">
-              <input id="manualSupplier" type="text" placeholder="Supplier *" class="bc-input" style="flex:1; min-width:160px;">
-              <input id="manualDescription" type="text" placeholder="Description *" class="bc-input" style="flex:2; min-width:220px;">
-              <input id="manualPart" type="text" placeholder="Part # *" class="bc-input" style="flex:1; min-width:120px;">
-              <input id="manualPrice" type="text" placeholder="Price each * e.g. 12.95" class="bc-input" style="flex:1; min-width:160px;">
+              <input id="manualSupplier" type="text" placeholder="Supplier" class="bc-input" style="flex:1; min-width:160px;">
+              <input id="manualDescription" type="text" placeholder="Description" class="bc-input" style="flex:2; min-width:220px;">
+              <input id="manualPart" type="text" placeholder="Part #" class="bc-input" style="flex:1; min-width:120px;">
+              <input id="manualPrice" type="text" placeholder="Price each e.g. 12.95" class="bc-input" style="flex:1; min-width:160px;">
               <input id="manualQty" type="number" min="1" value="1" placeholder="Qty" class="bc-input" style="width:100px;">
             </div>
             <div style="margin-top:8px; display:flex; gap:8px; justify-content:flex-end;">
               <button id="manualAddBtn" class="btn" style="border-color:#22c55e; background:#ecfdf5; color:#166534;">Add manual line to quote</button>
             </div>
-            <div class="small" style="margin-top:6px; color:#6b7280;">Tip: Price can include a dollar sign, commas, or spaces. We will clean it automatically.</div>
+            <div class="small" style="margin-top:6px; color:#6b7280;">Tip: Price can include a dollar sign, commas, or spaces. It will be cleaned automatically.</div>
           </div>
         </div>
 
@@ -344,9 +610,11 @@
             <button id="btnClearQuote" class="action-btn danger">
               <div class="ico">🗑️</div><div class="lbl">Clear quote</div><div class="cap">Removes all</div>
             </button>
-            <button class="action-btn disabled" disabled>
-              <div class="ico">⏳</div><div class="lbl">Reserved</div><div class="cap">Coming soon</div>
-            </button>
+<button id="emailPoRequest" class="action-btn dark">
+  <div class="ico">📧</div>
+  <div class="lbl">Email PO request</div>
+  <div class="cap">Open email draft</div>
+</button>
           </div>
         </div>
       </div>
@@ -354,19 +622,27 @@
 
     <!-- Settings / Diagnostics page -->
     <div id="settingsPage" style="display:none;">
+      <!-- Row with Home + Settings buttons -->
+      <div style="margin-bottom:8px; display:flex; gap:8px;">
+        <button class="btn btn-ghost" id="goHomeFromSettings" style="flex:1;">← Home</button>
+        <button class="btn btn-primary" style="flex:1; background:#3b82f6; color:white;" disabled>
+          Settings
+        </button>
+      </div>
+
       <div class="card">
         <h2 style="margin-top:0; font-size:16px;">Settings and diagnostics</h2>
         <p class="small">Quick health check of your Fire Parts app and data.</p>
 
-        <!-- Software versions bubble -->
+        <!-- Software versions -->
         <div class="card" style="margin-top:8px;">
           <h3 style="margin:0 0 6px 0; font-size:14px;">Software versions</h3>
-          <p class="small"><strong>App version:</strong> <span>v5.3.6</span></p>
-          <p class="small"><strong>Index.html version:</strong> <span id="diagIdxVersion">v5.3.6</span></p>
-          <p class="small"><strong>Service Worker version:</strong> <span id="diagSwVersion">fpl-v5-3-6</span></p>
+          <p class="small"><strong>App version (app.js):</strong> <span>v5.3.10</span></p>
+          <p class="small"><strong>Index.html version:</strong> <span id="diagIdxVersion">v5.3.10</span></p>
+          <p class="small"><strong>Service worker cache:</strong> <span id="diagSwVersion">fpl-v5-3-10</span></p>
         </div>
 
-        <!-- Data & status bubble -->
+        <!-- Data & status -->
         <div class="card" style="margin-top:8px;">
           <h3 style="margin:0 0 6px 0; font-size:14px;">Data and status</h3>
           <p class="small"><strong>CSV source:</strong> <span id="diagCsvSource">None loaded</span></p>
@@ -377,13 +653,25 @@
           <p class="small"><strong>Service worker:</strong> <span id="diagSwStatus">Checking…</span></p>
         </div>
 
-        <!-- Maintenance -->
+        <!-- CSV data management -->
         <div class="card" style="margin-top:8px;">
-          <h3 style="margin:0 0 6px 0; font-size:14px;">Maintenance</h3>
-          <p class="small">If things look odd, you can clear all local data and reload CSV.</p>
-          <button id="btnDiagClearAll" class="btn btn-danger" style="margin-top:6px;">Clear all app data</button>
-          <p class="small" style="margin-top:6px; color:#b91c1c;">This removes cached CSV, saved quotes, build case state, and access flag. It does not touch your CSV file on OneDrive or GitHub.</p>
+          <h3 style="margin:0 0 6px 0; font-size:14px;">CSV data management</h3>
+          <p class="small">Control how your shared CSV and local data are loaded and cleared.</p>
+
+          <div style="display:flex; flex-wrap:wrap; gap:8px; margin-top:6px;">
+            <button id="loadLocalCsvSettings" class="btn btn-secondary">Load local CSV</button>
+            <button id="loadSharedSettings" class="btn btn-secondary">Load shared CSV</button>
+            <button id="clearDataSettings" class="btn btn-danger">Clear all app data</button>
+          </div>
+
+          <p class="small" style="margin-top:6px; color:#b91c1c;">
+            This removes cached CSV, saved quotes, build case state, and the access flag.
+            It does not touch the CSV file stored on GitHub or OneDrive.
+          </p>
         </div>
+
+        <!-- Hidden file picker (used by CSV load) -->
+        <input id="csv" type="file" accept=".csv">
 
         <!-- Debug export -->
         <div class="card" style="margin-top:8px;">
@@ -413,9 +701,14 @@
           <textarea id="notesEstimator" class="bc-textarea" placeholder="Auto filled with quote line items..."></textarea>
         </div>
 
+        <!-- Navigation for Step 1 -->
         <div style="margin-top:10px; display:flex; gap:8px; justify-content:space-between; flex-wrap:wrap;">
-          <button id="btnBackToQuote" class="btn" style="border-color:#3b82f6; color:#1d4ed8;">Back to Quote</button>
-          <button id="btnToBuild2" class="btn" style="border-color:#16a34a; color:#166534; background:#ecfdf5;">Continue to Step 2</button>
+          <button id="btnBackToQuote" class="btn" style="border-color:#6b7280; color:#374151;">
+            Back to Quote
+          </button>
+          <button id="btnToBuild2" class="btn" style="border-color:#16a34a; color:#166534; background:#ecfdf5;">
+            Continue to Step 2
+          </button>
         </div>
       </div>
     </div>
@@ -495,7 +788,7 @@
     <div id="buildcase3Page" style="display:none;">
       <div class="card">
         <p class="step-title">Build case - Step 3</p>
-        <p class="muted">Final review. Notes to estimator carry over exactly from the current quote plus labour summary.</p>
+        <p class="muted">Final review. Notes to estimator carry over from the current quote plus labour summary.</p>
 
         <div class="card" style="margin-top:8px;">
           <div style="display:flex; align-items:center; justify-content:space-between; gap:8px;">
@@ -517,15 +810,45 @@
         </div>
 
         <div style="margin-top:10px; display:flex; gap:8px; justify-content:space-between; flex-wrap:wrap;">
-          <button id="btnBackToBuild2" class="btn" style="border-color:#6b7280; color:#374151;">Back to Step 2</button>
-          <button id="btnBackToQuoteFrom3" class="btn" style="border-color:#3b82f6; color:#1d4ed8;">Back to Quote</button>
+          <button id="btnBackToBuild2" class="btn" style="border-color:#6b7280; color:#374151;">
+            Back to Step 2
+          </button>
+          <button id="btnBackToQuoteFrom3" class="btn" style="border-color:#3b82f6; color:#1d4ed8;">
+            Back to Quote
+          </button>
         </div>
       </div>
     </div>
   </main>
 
+  <!-- Haymans store picker dialog -->
+<div id="haymansDialog" class="modal" style="display:none;
+     position:fixed; inset:0; background:rgba(0,0,0,0.45);
+     align-items:center; justify-content:center; z-index:9999;">
+  <div style="background:#fff; padding:16px 20px; border-radius:10px; max-width:320px; width:90%; box-shadow:0 4px 16px rgba(0,0,0,0.25);">
+    <div style="font-weight:600; margin-bottom:8px;">Haymans store</div>
+    <label style="font-size:14px; display:block; margin-bottom:8px;">
+      Which Haymans store should the PO be sent to?
+    </label>
+    <input id="haymansStoreInput"
+           list="haymansStoreList"
+           style="width:100%; padding:6px 8px; border-radius:6px; border:1px solid #d1d5db; margin-bottom:12px; font-size:14px;">
+    <datalist id="haymansStoreList"></datalist>
+    <div style="text-align:right;">
+      <button type="button" id="haymansStoreCancel"
+              style="margin-right:8px; padding:4px 10px; border-radius:6px; border:1px solid #d1d5db; background:#f3f4f6; font-size:13px;">
+        Cancel
+      </button>
+      <button type="button" id="haymansStoreOk"
+              style="padding:4px 10px; border-radius:6px; border:1px solid #22c55e; background:#ecfdf5; color:#166534; font-size:13px;">
+        OK
+      </button>
+    </div>
+  </div>
+</div>
+
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
-  <script src="app.js?v=5.3.6"></script>
+  <script src="app.js"></script>
   <script>
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('sw.js')
@@ -534,3 +857,5 @@
   </script>
 </body>
 </html>
+
+
