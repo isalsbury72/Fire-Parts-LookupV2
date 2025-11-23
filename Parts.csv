@@ -1,5 +1,5 @@
 ﻿SUPPLIER,TYPE,DESCRIPTION,PARTNUMBER,PRICE,NOTES
-ALTRONICS,,MP3/MicroSD Tone Generator & Message Player Module,A1720C,255,
+Altronics,,MP3/MicroSD Tone Generator & Message Player Module,A1720C,255,
 Ampac,BASE,XP95/DISCOVERY LOW POWER RELAY BASE WITH XPERT CARD,201-0014,58,
 Ampac,BASE,XPERT CARD,201-0095,4,
 Ampac,ANC,XP95 LOOP POWERED BEACON,201-0118,152,
@@ -4628,3 +4628,4 @@ Pertronic 2025,,"EVAC Amplifier, 50W 24V, with Integral Tone and Evacuation Mess
 Pertronic 2025,,Network Card - F100A/F120A Panels / LED Mimics,NETCARD,937,
 Pertronic 2025,,Network Card for Network Control / Display Unit,NETCD-NCU,937,
 Pertronic 2025,,"Network Control Unit in F120A Mimic Case, AUS",NETCU-A,1955,
+Mark Joy,,Legend (Retired),,9999,They broke the mold!
